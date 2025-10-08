@@ -1,0 +1,15 @@
+{
+  "name": "event-loop-visualizer",
+  "version": "1.0.0",
+  "description": "A Node.js app to visualize the Event Loop, Web APIs, and (Micro)task Queue",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "keywords": ["event-loop", "nodejs", "visualization"],
+  "author": "",
+  "license": "MIT"
+}

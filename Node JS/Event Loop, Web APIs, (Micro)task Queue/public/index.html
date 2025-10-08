@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Event Loop Visualizer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans p-5">
+  <h1 class="text-3xl font-bold text-center text-gray-800 mb-5">Node.js Event Loop Visualizer</h1>
+  <div id="visualizer" class="flex justify-around mb-5">
+    <div id="call-stack" class="queue border-2 border-gray-800 rounded-lg p-3 w-48 min-h-48 bg-white">
+      <h2 class="text-center mb-2">Call Stack</h2>
+      <ul id="call-stack-list" class="list-none p-0"></ul>
+    </div>
+    <div id="web-apis" class="queue border-2 border-gray-800 rounded-lg p-3 w-48 min-h-48 bg-white">
+      <h2 class="text-center mb-2">Web APIs / Node APIs</h2>
+      <ul id="web-apis-list" class="list-none p-0"></ul>
+    </div>
+    <div id="microtask-queue" class="queue border-2 border-gray-800 rounded-lg p-3 w-48 min-h-48 bg-white">
+      <h2 class="text-center mb-2">Microtask Queue</h2>
+      <ul id="microtask-queue-list" class="list-none p-0"></ul>
+    </div>
+    <div id="task-queue" class="queue border-2 border-gray-800 rounded-lg p-3 w-48 min-h-48 bg-white">
+      <h2 class="text-center mb-2">Task Queue</h2>
+      <ul id="task-queue-list" class="list-none p-0"></ul>
+    </div>
+  </div>
+  <div id="controls" class="text-center mb-5">
+    <button id="add-sync-task" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mx-2 cursor-pointer">Add Synchronous Task</button>
+    <button id="add-async-task" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mx-2 cursor-pointer">Add Asynchronous Task</button>
+    <button id="add-microtask" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mx-2 cursor-pointer">Add Microtask</button>
+    <button id="start-loop" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mx-2 cursor-pointer">Start Event Loop</button>
+    <button id="stop-loop" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded mx-2 cursor-pointer">Stop Event Loop</button>
+    <button id="reset" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded mx-2 cursor-pointer">Reset</button>
+  </div>
+  <div id="console-output" class="border-2 border-gray-800 rounded-lg p-3 bg-black text-green-400 max-h-80 overflow-y-auto">
+    <h2 class="text-white mb-2">Console Output</h2>
+    <pre id="console-log" class="font-mono whitespace-pre-wrap"></pre>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>
