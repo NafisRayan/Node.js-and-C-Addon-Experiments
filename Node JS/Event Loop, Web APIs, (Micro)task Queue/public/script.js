@@ -6,17 +6,25 @@ class EventLoopSimulator {
     this.taskQueue = [];
     this.isRunning = false;
     this.taskId = 0;
+    this._pendingTimers = new Map(); // track timers for async tasks
 
     this.bindEvents();
   }
 
   bindEvents() {
-    document.getElementById('add-sync-task').addEventListener('click', () => this.addSyncTask());
-    document.getElementById('add-async-task').addEventListener('click', () => this.addAsyncTask());
-    document.getElementById('add-microtask').addEventListener('click', () => this.addMicrotask());
-    document.getElementById('start-loop').addEventListener('click', () => this.startLoop());
-    document.getElementById('stop-loop').addEventListener('click', () => this.stopLoop());
-    document.getElementById('reset').addEventListener('click', () => this.reset());
+    // Defensive DOM lookups: ensure elements exist before binding
+    const bindIf = (id, fn) => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('click', fn);
+      else console.warn(`EventLoopSimulator: missing element with id="${id}"`);
+    };
+
+    bindIf('add-sync-task', () => this.addSyncTask());
+    bindIf('add-async-task', () => this.addAsyncTask());
+    bindIf('add-microtask', () => this.addMicrotask());
+    bindIf('start-loop', () => this.startLoop());
+    bindIf('stop-loop', () => this.stopLoop());
+    bindIf('reset', () => this.reset());
   }
 
   addSyncTask() {
@@ -32,12 +40,17 @@ class EventLoopSimulator {
     this.updateUI();
     this.log(`Added ${task.name} to Web APIs`);
     // Simulate async operation completing
-    setTimeout(() => {
-      this.taskQueue.push(task);
-      this.webAPIs = this.webAPIs.filter(t => t.id !== task.id);
-      this.updateUI();
-      this.log(`${task.name} moved from Web APIs to Task Queue`);
+    const timeoutId = setTimeout(() => {
+      // Only move the task if it's still present in webAPIs
+      if (this.webAPIs.find(t => t.id === task.id)) {
+        this.taskQueue.push(task);
+        this.webAPIs = this.webAPIs.filter(t => t.id !== task.id);
+        this.updateUI();
+        this.log(`${task.name} moved from Web APIs to Task Queue`);
+      }
+      this._pendingTimers.delete(task.id);
     }, 2000);
+    this._pendingTimers.set(task.id, timeoutId);
   }
 
   addMicrotask() {
@@ -66,14 +79,19 @@ class EventLoopSimulator {
     this.taskQueue = [];
     this.taskId = 0;
     this.isRunning = false;
+    // Clear any pending timers created by addAsyncTask
+    for (const [, tid] of this._pendingTimers) {
+      try { clearTimeout(tid); } catch (e) { /* ignore */ }
+    }
+    this._pendingTimers.clear();
     this.updateUI();
     this.clearLog();
   }
 
   async runLoop() {
     while (this.isRunning) {
-      // Process call stack
-      if (this.callStack.length > 0) {
+      // Process entire call stack (synchronous LIFO execution)
+      while (this.callStack.length > 0 && this.isRunning) {
         const task = this.callStack.pop();
         await this.executeTask(task, 'call-stack-list');
         this.log(`Executed ${task.name} from Call Stack`);
@@ -100,6 +118,7 @@ class EventLoopSimulator {
 
   async executeTask(task, listId) {
     const list = document.getElementById(listId);
+    if (!list) return;
     const li = list.querySelector(`[data-id="${task.id}"]`);
     if (li) {
       li.className = 'bg-yellow-300 my-1 p-2 rounded transition-all duration-300 font-bold';
@@ -121,6 +140,10 @@ class EventLoopSimulator {
 
   updateList(listId, tasks) {
     const list = document.getElementById(listId);
+    if (!list) {
+      console.warn(`EventLoopSimulator: updateList() missing list element id="${listId}"`);
+      return;
+    }
     list.innerHTML = '';
     tasks.forEach(task => {
       const li = document.createElement('li');
