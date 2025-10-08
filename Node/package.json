@@ -1,0 +1,21 @@
+{
+  "name": "express-chat-app",
+  "version": "1.0.0",
+  "description": "A simple Express chat app using JSON as database",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "node app.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  },
+  "keywords": [
+    "express",
+    "chat",
+    "node",
+    "json"
+  ],
+  "author": "",
+  "license": "ISC"
+}
