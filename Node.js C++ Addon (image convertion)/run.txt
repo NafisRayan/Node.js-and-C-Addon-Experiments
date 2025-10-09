@@ -1,0 +1,2 @@
+cd "c:\Users\BS00861\Documents\Test\Node JS\Node.js C++ Addon (image convertion)"; $env:NODE_GYP_FORCE_PYTHON = "C:\Users\BS00861\AppData\Local\Programs\Python\Python311\python.exe"; npx node-gyp rebuild
+
