@@ -5,7 +5,7 @@ const addon = require('./build/Release/imageAddon');
 const app = express();
 const upload = multer();
 
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '50mb' }));
 app.use(express.static('public'));
 
 app.post('/convert', upload.single('image'), (req, res) => {

@@ -24,7 +24,8 @@
         <textarea id="numbersInput" placeholder="Enter numbers array" class="w-full h-32 p-2 border mb-4"></textarea>
         <input type="number" id="widthInput" placeholder="Width" class="mr-2 p-2 border" value="100">
         <input type="number" id="heightInput" placeholder="Height" class="mr-2 p-2 border" value="100">
-        <button id="generateBtn" class="bg-green-500 text-white px-4 py-2 rounded">Generate Image</button>
+        <button id="generateFromMemoryBtn" class="bg-green-500 text-white px-4 py-2 rounded mr-2">Generate from Memory</button>
+        <button id="generateFromFileBtn" class="bg-blue-500 text-white px-4 py-2 rounded hidden">Generate from File</button>
         <div class="mt-4">
           <img id="generatedImage" class="max-w-full hidden">
           <button id="downloadBtn" class="bg-red-500 text-white px-4 py-2 rounded mt-2 hidden">Download Image</button>
@@ -39,8 +40,13 @@
       const formData = new FormData();
       formData.append('image', file);
       const res = await fetch('/convert', { method: 'POST', body: formData });
+      console.log('Convert response:', res.status, res.statusText);
+      if (!res.ok) {
+        const error = await res.text();
+        throw new Error(error || 'Server error');
+      }
       const data = await res.json();
-      window.generatedNumbers = data.numbers;
+      window.memoryNumbers = data.numbers;
       window.imageWidth = data.width;
       window.imageHeight = data.height;
       document.getElementById('numbersOutput').value = `Numbers generated (length: ${data.numbers.length})`;
@@ -49,12 +55,12 @@
       document.getElementById('downloadNumbersBtn').classList.remove('hidden');
     });
     document.getElementById('downloadNumbersBtn').addEventListener('click', () => {
-      if (!window.generatedNumbers) {
+      if (!window.memoryNumbers) {
         alert('No numbers to download. Please convert an image first.');
         return;
       }
       const data = {
-        numbers: window.generatedNumbers,
+        numbers: window.memoryNumbers,
         width: window.imageWidth,
         height: window.imageHeight
       };
@@ -79,27 +85,21 @@
         if (!data.numbers || !Array.isArray(data.numbers)) {
           throw new Error('Invalid format: expected {numbers: array, width: number, height: number}.');
         }
-        window.generatedNumbers = data.numbers;
-        window.imageWidth = data.width;
-        window.imageHeight = data.height;
+        window.fileNumbers = data.numbers;
+        window.fileWidth = data.width;
+        window.fileHeight = data.height;
         document.getElementById('widthInput').value = data.width;
         document.getElementById('heightInput').value = data.height;
         document.getElementById('numbersInput').value = `Loaded from file (length: ${data.numbers.length})`;
-        alert('Numbers loaded successfully.');
+        document.getElementById('generateFromFileBtn').classList.remove('hidden');
       } catch (e) {
         alert('Error loading file: ' + e.message);
       }
     });
-    document.getElementById('generateBtn').addEventListener('click', async () => {
+    document.getElementById('generateFromMemoryBtn').addEventListener('click', async () => {
       try {
-        let numbers;
-        const inputValue = document.getElementById('numbersInput').value.trim();
-        if (window.generatedNumbers) {
-          numbers = window.generatedNumbers;
-        } else if (inputValue && !inputValue.startsWith('Loaded')) {
-          numbers = JSON.parse(inputValue);
-        } else {
-          alert('No numbers available. Please load from file, convert an image, or enter numbers manually.');
+        if (!window.memoryNumbers) {
+          alert('No numbers in memory. Please convert an image first.');
           return;
         }
         const width = parseInt(document.getElementById('widthInput').value);
@@ -107,7 +107,40 @@
         const res = await fetch('/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ numbers, width, height })
+          body: JSON.stringify({ numbers: window.memoryNumbers, width, height })
+        });
+        if (!res.ok) {
+          const error = await res.json();
+          throw new Error(error.error || 'Server error');
+        }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const img = document.getElementById('generatedImage');
+        img.src = url;
+        img.classList.remove('hidden');
+        document.getElementById('downloadBtn').classList.remove('hidden');
+        document.getElementById('downloadBtn').onclick = () => {
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'generated.png';
+          a.click();
+        };
+      } catch (e) {
+        alert('Error: ' + e.message);
+      }
+    });
+    document.getElementById('generateFromFileBtn').addEventListener('click', async () => {
+      try {
+        if (!window.fileNumbers) {
+          alert('No numbers loaded from file.');
+          return;
+        }
+        const width = parseInt(document.getElementById('widthInput').value);
+        const height = parseInt(document.getElementById('heightInput').value);
+        const res = await fetch('/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ numbers: window.fileNumbers, width, height })
         });
         if (!res.ok) {
           const error = await res.json();
