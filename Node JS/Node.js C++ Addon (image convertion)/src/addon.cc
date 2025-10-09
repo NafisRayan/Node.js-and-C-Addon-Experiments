@@ -26,7 +26,11 @@ Napi::Value ImageToNumbers(const Napi::CallbackInfo& info) {
     result[i] = Napi::Number::New(env, data[i]);
   }
   stbi_image_free(data);
-  return result;
+  Napi::Object obj = Napi::Object::New(env);
+  obj.Set("numbers", result);
+  obj.Set("width", width);
+  obj.Set("height", height);
+  return obj;
 }
 
 Napi::Value NumbersToImage(const Napi::CallbackInfo& info) {

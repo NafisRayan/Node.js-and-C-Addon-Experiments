@@ -14,10 +14,13 @@
         <h2 class="text-xl font-semibold mb-4">Upload Image</h2>
         <input type="file" id="imageInput" accept="image/*" class="mb-4">
         <button id="convertBtn" class="bg-blue-500 text-white px-4 py-2 rounded">Convert to Numbers</button>
+        <button id="downloadNumbersBtn" class="bg-green-500 text-white px-4 py-2 rounded ml-2 hidden">Download Numbers</button>
         <textarea id="numbersOutput" class="w-full h-32 mt-4 p-2 border" readonly></textarea>
       </div>
       <div>
         <h2 class="text-xl font-semibold mb-4">Generate Image from Numbers</h2>
+        <input type="file" id="numbersFileInput" accept=".json" class="mb-2">
+        <button id="loadNumbersBtn" class="bg-purple-500 text-white px-4 py-2 rounded mr-2">Load Numbers from File</button>
         <textarea id="numbersInput" placeholder="Enter numbers array" class="w-full h-32 p-2 border mb-4"></textarea>
         <input type="number" id="widthInput" placeholder="Width" class="mr-2 p-2 border" value="100">
         <input type="number" id="heightInput" placeholder="Height" class="mr-2 p-2 border" value="100">
@@ -37,29 +40,94 @@
       formData.append('image', file);
       const res = await fetch('/convert', { method: 'POST', body: formData });
       const data = await res.json();
-      document.getElementById('numbersOutput').value = JSON.stringify(data.numbers);
+      window.generatedNumbers = data.numbers;
+      window.imageWidth = data.width;
+      window.imageHeight = data.height;
+      document.getElementById('numbersOutput').value = `Numbers generated (length: ${data.numbers.length})`;
+      document.getElementById('widthInput').value = data.width;
+      document.getElementById('heightInput').value = data.height;
+      document.getElementById('downloadNumbersBtn').classList.remove('hidden');
+    });
+    document.getElementById('downloadNumbersBtn').addEventListener('click', () => {
+      if (!window.generatedNumbers) {
+        alert('No numbers to download. Please convert an image first.');
+        return;
+      }
+      const data = {
+        numbers: window.generatedNumbers,
+        width: window.imageWidth,
+        height: window.imageHeight
+      };
+      const dataStr = JSON.stringify(data);
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'numbers.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+    document.getElementById('loadNumbersBtn').addEventListener('click', async () => {
+      const file = document.getElementById('numbersFileInput').files[0];
+      if (!file) {
+        alert('Please select a JSON file.');
+        return;
+      }
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        if (!data.numbers || !Array.isArray(data.numbers)) {
+          throw new Error('Invalid format: expected {numbers: array, width: number, height: number}.');
+        }
+        window.generatedNumbers = data.numbers;
+        window.imageWidth = data.width;
+        window.imageHeight = data.height;
+        document.getElementById('widthInput').value = data.width;
+        document.getElementById('heightInput').value = data.height;
+        document.getElementById('numbersInput').value = `Loaded from file (length: ${data.numbers.length})`;
+        alert('Numbers loaded successfully.');
+      } catch (e) {
+        alert('Error loading file: ' + e.message);
+      }
     });
     document.getElementById('generateBtn').addEventListener('click', async () => {
-      const numbers = JSON.parse(document.getElementById('numbersInput').value);
-      const width = parseInt(document.getElementById('widthInput').value);
-      const height = parseInt(document.getElementById('heightInput').value);
-      const res = await fetch('/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ numbers, width, height })
-      });
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const img = document.getElementById('generatedImage');
-      img.src = url;
-      img.classList.remove('hidden');
-      document.getElementById('downloadBtn').classList.remove('hidden');
-      document.getElementById('downloadBtn').onclick = () => {
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'generated.png';
-        a.click();
-      };
+      try {
+        let numbers;
+        const inputValue = document.getElementById('numbersInput').value.trim();
+        if (window.generatedNumbers) {
+          numbers = window.generatedNumbers;
+        } else if (inputValue && !inputValue.startsWith('Loaded')) {
+          numbers = JSON.parse(inputValue);
+        } else {
+          alert('No numbers available. Please load from file, convert an image, or enter numbers manually.');
+          return;
+        }
+        const width = parseInt(document.getElementById('widthInput').value);
+        const height = parseInt(document.getElementById('heightInput').value);
+        const res = await fetch('/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ numbers, width, height })
+        });
+        if (!res.ok) {
+          const error = await res.json();
+          throw new Error(error.error || 'Server error');
+        }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const img = document.getElementById('generatedImage');
+        img.src = url;
+        img.classList.remove('hidden');
+        document.getElementById('downloadBtn').classList.remove('hidden');
+        document.getElementById('downloadBtn').onclick = () => {
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'generated.png';
+          a.click();
+        };
+      } catch (e) {
+        alert('Error: ' + e.message);
+      }
     });
   </script>
 </body>
