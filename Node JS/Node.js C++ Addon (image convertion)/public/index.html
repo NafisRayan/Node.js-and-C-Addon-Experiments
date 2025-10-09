@@ -5,55 +5,156 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Image Converter</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 </head>
-<body class="bg-gray-100 p-4">
-  <div class="max-w-4xl mx-auto">
-    <h1 class="text-3xl font-bold mb-8">Image to Numbers Converter</h1>
-    <div class="grid md:grid-cols-2 gap-8">
-      <div>
-        <h2 class="text-xl font-semibold mb-4">Upload Image</h2>
-        <input type="file" id="imageInput" accept="image/*" class="mb-4">
-        <button id="convertBtn" class="bg-blue-500 text-white px-4 py-2 rounded">Convert to Numbers</button>
-        <button id="downloadNumbersBtn" class="bg-green-500 text-white px-4 py-2 rounded ml-2 hidden">Download Numbers</button>
-        <textarea id="numbersOutput" class="w-full h-32 mt-4 p-2 border" readonly></textarea>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+  <div class="container mx-auto px-4 py-8 max-w-6xl">
+    <header class="text-center mb-12">
+      <h1 class="text-4xl font-bold text-gray-800 mb-2">Image to Numbers Converter</h1>
+      <p class="text-gray-600">Convert images to numeric arrays and back using native C++ processing</p>
+    </header>
+
+    <div class="grid lg:grid-cols-2 gap-8">
+      <!-- Image to Numbers Section -->
+      <div class="bg-white rounded-xl shadow-lg p-6">
+        <h2 class="text-2xl font-semibold text-gray-800 mb-6 flex items-center">
+          <i data-lucide="image" class="w-6 h-6 mr-2 text-blue-500"></i>
+          Image to Numbers
+        </h2>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Upload Image</label>
+            <input type="file" id="imageInput" accept="image/*" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+
+          <img id="uploadedImage" class="hidden max-w-full rounded-lg shadow-md mx-auto">
+
+          <button id="convertBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-md transition duration-200 flex items-center justify-center">
+            <i data-lucide="zap" class="w-5 h-5 mr-2"></i>
+            Convert to Numbers
+          </button>
+
+          <div id="numbersSection" class="hidden">
+            <textarea id="numbersOutput" class="w-full h-24 p-3 border border-gray-300 rounded-md bg-gray-50 text-sm" readonly></textarea>
+            <button id="downloadNumbersBtn" class="mt-3 w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition duration-200 flex items-center justify-center">
+              <i data-lucide="download" class="w-4 h-4 mr-2"></i>
+              Download Numbers
+            </button>
+          </div>
+        </div>
       </div>
-      <div>
-        <h2 class="text-xl font-semibold mb-4">Generate Image from Numbers</h2>
-        <input type="file" id="numbersFileInput" accept=".json" class="mb-2">
-        <button id="loadNumbersBtn" class="bg-purple-500 text-white px-4 py-2 rounded mr-2">Load Numbers from File</button>
-        <textarea id="numbersInput" placeholder="Enter numbers array" class="w-full h-32 p-2 border mb-4"></textarea>
-        <input type="number" id="widthInput" placeholder="Width" class="mr-2 p-2 border" value="100">
-        <input type="number" id="heightInput" placeholder="Height" class="mr-2 p-2 border" value="100">
-        <button id="generateFromMemoryBtn" class="bg-green-500 text-white px-4 py-2 rounded mr-2">Generate from Memory</button>
-        <button id="generateFromFileBtn" class="bg-blue-500 text-white px-4 py-2 rounded hidden">Generate from File</button>
-        <div class="mt-4">
-          <img id="generatedImage" class="max-w-full hidden">
-          <button id="downloadBtn" class="bg-red-500 text-white px-4 py-2 rounded mt-2 hidden">Download Image</button>
+
+      <!-- Numbers to Image Section -->
+      <div class="bg-white rounded-xl shadow-lg p-6">
+        <h2 class="text-2xl font-semibold text-gray-800 mb-6 flex items-center">
+          <i data-lucide="cpu" class="w-6 h-6 mr-2 text-green-500"></i>
+          Numbers to Image
+        </h2>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Load Numbers from File</label>
+            <input type="file" id="numbersFileInput" accept=".json" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+            <button id="loadNumbersBtn" class="mt-2 w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md transition duration-200 flex items-center justify-center">
+              <i data-lucide="upload" class="w-4 h-4 mr-2"></i>
+              Load Numbers
+            </button>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Width</label>
+              <input type="number" id="widthInput" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" value="100">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Height</label>
+              <input type="number" id="heightInput" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" value="100">
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <button id="generateFromMemoryBtn" class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-md transition duration-200 flex items-center justify-center disabled:opacity-50" disabled>
+              <i data-lucide="memory-stick" class="w-5 h-5 mr-2"></i>
+              Generate from Memory
+            </button>
+            <button id="generateFromFileBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-md transition duration-200 flex items-center justify-center disabled:opacity-50 hidden" disabled>
+              <i data-lucide="file-image" class="w-5 h-5 mr-2"></i>
+              Generate from File
+            </button>
+          </div>
+
+          <div id="generatedSection" class="hidden">
+            <img id="generatedImage" class="w-full rounded-lg shadow-md">
+            <button id="downloadBtn" class="mt-3 w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md transition duration-200 flex items-center justify-center">
+              <i data-lucide="download" class="w-4 h-4 mr-2"></i>
+              Download Image
+            </button>
+          </div>
         </div>
       </div>
     </div>
+
+    <footer class="text-center mt-12 text-gray-500">
+      <p>Built with Node.js, C++ Addon, and Tailwind CSS</p>
+    </footer>
   </div>
+
   <script>
+    // Initialize Lucide icons
+    lucide.createIcons();
+
+    // Image upload preview
+    document.getElementById('imageInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const url = URL.createObjectURL(file);
+        document.getElementById('uploadedImage').src = url;
+        document.getElementById('uploadedImage').classList.remove('hidden');
+      }
+    });
+
+    // Convert image
     document.getElementById('convertBtn').addEventListener('click', async () => {
       const file = document.getElementById('imageInput').files[0];
-      if (!file) return;
-      const formData = new FormData();
-      formData.append('image', file);
-      const res = await fetch('/convert', { method: 'POST', body: formData });
-      console.log('Convert response:', res.status, res.statusText);
-      if (!res.ok) {
-        const error = await res.text();
-        throw new Error(error || 'Server error');
+      if (!file) {
+        alert('Please select an image first.');
+        return;
       }
-      const data = await res.json();
-      window.memoryNumbers = data.numbers;
-      window.imageWidth = data.width;
-      window.imageHeight = data.height;
-      document.getElementById('numbersOutput').value = `Numbers generated (length: ${data.numbers.length})`;
-      document.getElementById('widthInput').value = data.width;
-      document.getElementById('heightInput').value = data.height;
-      document.getElementById('downloadNumbersBtn').classList.remove('hidden');
+
+      const btn = document.getElementById('convertBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<i data-lucide="loader" class="w-5 h-5 mr-2 animate-spin"></i> Converting...';
+      lucide.createIcons();
+
+      try {
+        const formData = new FormData();
+        formData.append('image', file);
+        const res = await fetch('/convert', { method: 'POST', body: formData });
+        console.log('Convert response:', res.status, res.statusText);
+        if (!res.ok) {
+          const error = await res.text();
+          throw new Error(error || 'Server error');
+        }
+        const data = await res.json();
+        window.memoryNumbers = data.numbers;
+        window.imageWidth = data.width;
+        window.imageHeight = data.height;
+        document.getElementById('numbersOutput').value = `Numbers generated (length: ${data.numbers.length}, size: ${data.width}x${data.height})`;
+        document.getElementById('widthInput').value = data.width;
+        document.getElementById('heightInput').value = data.height;
+        document.getElementById('numbersSection').classList.remove('hidden');
+        document.getElementById('generateFromMemoryBtn').disabled = false;
+      } catch (e) {
+        alert('Error: ' + e.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="zap" class="w-5 h-5 mr-2"></i> Convert to Numbers';
+        lucide.createIcons();
+      }
     });
+
+    // Download numbers
     document.getElementById('downloadNumbersBtn').addEventListener('click', () => {
       if (!window.memoryNumbers) {
         alert('No numbers to download. Please convert an image first.');
@@ -73,6 +174,8 @@
       a.click();
       URL.revokeObjectURL(url);
     });
+
+    // Load numbers from file
     document.getElementById('loadNumbersBtn').addEventListener('click', async () => {
       const file = document.getElementById('numbersFileInput').files[0];
       if (!file) {
@@ -90,18 +193,27 @@
         window.fileHeight = data.height;
         document.getElementById('widthInput').value = data.width;
         document.getElementById('heightInput').value = data.height;
-        document.getElementById('numbersInput').value = `Loaded from file (length: ${data.numbers.length})`;
         document.getElementById('generateFromFileBtn').classList.remove('hidden');
+        document.getElementById('generateFromFileBtn').disabled = false;
+        alert('Numbers loaded successfully.');
       } catch (e) {
         alert('Error loading file: ' + e.message);
       }
     });
+
+    // Generate from memory
     document.getElementById('generateFromMemoryBtn').addEventListener('click', async () => {
+      if (!window.memoryNumbers) {
+        alert('No numbers in memory. Please convert an image first.');
+        return;
+      }
+
+      const btn = document.getElementById('generateFromMemoryBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<i data-lucide="loader" class="w-5 h-5 mr-2 animate-spin"></i> Generating...';
+      lucide.createIcons();
+
       try {
-        if (!window.memoryNumbers) {
-          alert('No numbers in memory. Please convert an image first.');
-          return;
-        }
         const width = parseInt(document.getElementById('widthInput').value);
         const height = parseInt(document.getElementById('heightInput').value);
         const res = await fetch('/generate', {
@@ -117,24 +229,29 @@
         const url = URL.createObjectURL(blob);
         const img = document.getElementById('generatedImage');
         img.src = url;
-        img.classList.remove('hidden');
-        document.getElementById('downloadBtn').classList.remove('hidden');
-        document.getElementById('downloadBtn').onclick = () => {
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = 'generated.png';
-          a.click();
-        };
+        document.getElementById('generatedSection').classList.remove('hidden');
       } catch (e) {
         alert('Error: ' + e.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="memory-stick" class="w-5 h-5 mr-2"></i> Generate from Memory';
+        lucide.createIcons();
       }
     });
+
+    // Generate from file
     document.getElementById('generateFromFileBtn').addEventListener('click', async () => {
+      if (!window.fileNumbers) {
+        alert('No numbers loaded from file.');
+        return;
+      }
+
+      const btn = document.getElementById('generateFromFileBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<i data-lucide="loader" class="w-5 h-5 mr-2 animate-spin"></i> Generating...';
+      lucide.createIcons();
+
       try {
-        if (!window.fileNumbers) {
-          alert('No numbers loaded from file.');
-          return;
-        }
         const width = parseInt(document.getElementById('widthInput').value);
         const height = parseInt(document.getElementById('heightInput').value);
         const res = await fetch('/generate', {
@@ -150,16 +267,24 @@
         const url = URL.createObjectURL(blob);
         const img = document.getElementById('generatedImage');
         img.src = url;
-        img.classList.remove('hidden');
-        document.getElementById('downloadBtn').classList.remove('hidden');
-        document.getElementById('downloadBtn').onclick = () => {
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = 'generated.png';
-          a.click();
-        };
+        document.getElementById('generatedSection').classList.remove('hidden');
       } catch (e) {
         alert('Error: ' + e.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="file-image" class="w-5 h-5 mr-2"></i> Generate from File';
+        lucide.createIcons();
+      }
+    });
+
+    // Download generated image
+    document.getElementById('downloadBtn').addEventListener('click', () => {
+      const img = document.getElementById('generatedImage');
+      if (img.src) {
+        const a = document.createElement('a');
+        a.href = img.src;
+        a.download = 'generated.png';
+        a.click();
       }
     });
   </script>
