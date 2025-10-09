@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image Converter</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-4">
+  <div class="max-w-4xl mx-auto">
+    <h1 class="text-3xl font-bold mb-8">Image to Numbers Converter</h1>
+    <div class="grid md:grid-cols-2 gap-8">
+      <div>
+        <h2 class="text-xl font-semibold mb-4">Upload Image</h2>
+        <input type="file" id="imageInput" accept="image/*" class="mb-4">
+        <button id="convertBtn" class="bg-blue-500 text-white px-4 py-2 rounded">Convert to Numbers</button>
+        <textarea id="numbersOutput" class="w-full h-32 mt-4 p-2 border" readonly></textarea>
+      </div>
+      <div>
+        <h2 class="text-xl font-semibold mb-4">Generate Image from Numbers</h2>
+        <textarea id="numbersInput" placeholder="Enter numbers array" class="w-full h-32 p-2 border mb-4"></textarea>
+        <input type="number" id="widthInput" placeholder="Width" class="mr-2 p-2 border" value="100">
+        <input type="number" id="heightInput" placeholder="Height" class="mr-2 p-2 border" value="100">
+        <button id="generateBtn" class="bg-green-500 text-white px-4 py-2 rounded">Generate Image</button>
+        <div class="mt-4">
+          <img id="generatedImage" class="max-w-full hidden">
+          <button id="downloadBtn" class="bg-red-500 text-white px-4 py-2 rounded mt-2 hidden">Download Image</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    document.getElementById('convertBtn').addEventListener('click', async () => {
+      const file = document.getElementById('imageInput').files[0];
+      if (!file) return;
+      const formData = new FormData();
+      formData.append('image', file);
+      const res = await fetch('/convert', { method: 'POST', body: formData });
+      const data = await res.json();
+      document.getElementById('numbersOutput').value = JSON.stringify(data.numbers);
+    });
+    document.getElementById('generateBtn').addEventListener('click', async () => {
+      const numbers = JSON.parse(document.getElementById('numbersInput').value);
+      const width = parseInt(document.getElementById('widthInput').value);
+      const height = parseInt(document.getElementById('heightInput').value);
+      const res = await fetch('/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ numbers, width, height })
+      });
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const img = document.getElementById('generatedImage');
+      img.src = url;
+      img.classList.remove('hidden');
+      document.getElementById('downloadBtn').classList.remove('hidden');
+      document.getElementById('downloadBtn').onclick = () => {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'generated.png';
+        a.click();
+      };
+    });
+  </script>
+</body>
+</html>
