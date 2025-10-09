@@ -214,8 +214,8 @@
       lucide.createIcons();
 
       try {
-        const width = parseInt(document.getElementById('widthInput').value);
-        const height = parseInt(document.getElementById('heightInput').value);
+        const width = window.imageWidth;
+        const height = window.imageHeight;
         const res = await fetch('/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
