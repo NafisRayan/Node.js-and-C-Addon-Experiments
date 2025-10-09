@@ -352,34 +352,3 @@ npm run dev  # (if nodemon is added)
 # Run tests (when implemented)
 npm test
 ```
-
-### Code Style
-
-- Use ESLint for JavaScript (if configured)
-- Follow C++ best practices for addon code
-- Use meaningful variable names and comments
-- Test with various image formats and sizes
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- **stb_image** by Sean Barrett for image processing
-- **Node.js N-API** for native addon support
-- **Tailwind CSS** for styling framework
-- **Lucide** for beautiful icons
-
-## 📞 Support
-
-If you encounter issues:
-
-1. Check the [Troubleshooting](#troubleshooting) section
-2. Review server logs for error messages
-3. Ensure all prerequisites are met
-4. Create an issue with detailed information about your setup and the error
-
----
-
-**Happy coding! 🎉**

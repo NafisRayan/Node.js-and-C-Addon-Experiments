@@ -375,19 +375,3 @@ event-loop-visualizer/
 - **Vanilla JavaScript**: ES6+ classes and async/await for simulation
 - **HTML5**: Semantic markup for accessibility
 
-## 🎓 Learning Outcomes
-
-This project helps understand:
-- Asynchronous programming fundamentals
-- Event Loop execution model
-- Task prioritization (microtasks vs macrotasks)
-- Visual debugging of async code
-- Real-world application of JavaScript concurrency
-
-## 🤝 Contributing
-
-Feel free to submit issues, feature requests, or pull requests to improve the visualization or add more Event Loop concepts!
-
----
-
-**Note**: This is an educational tool. For production applications, rely on official Node.js documentation and browser developer tools for actual debugging.
