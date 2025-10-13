@@ -6,6 +6,7 @@ A comprehensive web application demonstrating REST API concepts through a task m
 
 - **CRUD Operations**: Create, Read, Update, and Delete tasks
 - **RESTful API**: Full REST API with GET, POST, PUT, DELETE endpoints
+- **Persistent Storage**: Tasks are stored in an SQLite database
 - **Interactive Dashboard**: Clean, responsive UI with task cards
 - **Request Logging**: Visual log of all API requests with method indicators
 - **Statistics Chart**: Doughnut chart showing task completion statistics
@@ -43,7 +44,7 @@ npm run dev
 
 ## Technologies Used
 
-- **Backend**: Node.js, Express.js
+- **Backend**: Node.js, Express.js, SQLite
 - **Frontend**: HTML, Tailwind CSS, JavaScript
 - **Charts**: Chart.js
 - **Middleware**: CORS, Body Parser
