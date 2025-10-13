@@ -210,7 +210,7 @@ function renderTasks(tasks) {
 
 function createTaskElement(task) {
   const div = document.createElement('div');
-  div.className = `task-card bg-white rounded-xl shadow-md p-6 border-l-4 animate-fade-in ${task.completed ? 'border-green-500' : 'border-indigo-500'}`;
+  div.className = `task-card bg-white rounded-xl shadow-md p-6 border-l-4 animate-fade-in ${task.completed ? 'border-green-500 completed' : 'border-indigo-500'}`;
   div.innerHTML = `
     <div class="flex justify-between items-start mb-4">
       <div class="flex-1">
