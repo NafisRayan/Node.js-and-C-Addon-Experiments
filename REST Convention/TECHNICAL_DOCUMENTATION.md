@@ -23,7 +23,7 @@ The REST Task Tracker is a full-stack web application that demonstrates REST API
 The application follows a client-server architecture with clear separation of concerns:
 
 ```
-┌─────────────────┐    HTTP/REST    ┌─────────────────┐
+┌─────────────────┐    HTTP/REST     ┌─────────────────┐
 │   Frontend      │◄────────────────►│   Backend API   │
 │   (Browser)     │                  │   (Node.js)     │
 └─────────────────┘                  └─────────────────┘
