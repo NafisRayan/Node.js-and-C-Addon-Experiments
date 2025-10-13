@@ -8,34 +8,30 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://unpkg.com/heroicons@2.0.18/24/outline/index.js" type="module"></script>
   <style>
-    .animate-fade-in { animation: fadeIn 0.3s ease-in; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    .task-card { transition: all 0.2s ease; }
-    .task-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-    .modal-backdrop { backdrop-filter: blur(4px); }
-    .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-    .btn-primary { @apply bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200; }
-    .btn-secondary { @apply bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition duration-200; }
-    .btn-danger { @apply bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200; }
-    .input-field { @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent; }
+    .animate-fade-in { animation: fadeIn 0.18s ease-in; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    .task-card { transition: transform 0.18s ease, box-shadow 0.18s ease; }
+    .task-card:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(15,23,42,0.06); }
+    .modal-backdrop { backdrop-filter: blur(3px); }
+    /* keep styles minimal and use Tailwind utility classes in markup for consistency */
   </style>
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen font-sans">
   <!-- Header -->
-  <header class="gradient-bg text-white py-6 px-4 shadow-lg">
+  <header class="bg-white text-gray-800 py-4 px-4 border-b">
     <div class="container mx-auto flex justify-between items-center">
       <div>
-        <h1 class="text-3xl font-bold">Task Tracker</h1>
-        <p class="text-indigo-100">Manage your tasks with REST API</p>
+        <h1 class="text-2xl font-semibold">Task Tracker</h1>
+        <p class="text-sm text-gray-500">A minimal, responsive task dashboard</p>
       </div>
-      <div class="flex items-center space-x-4">
+      <div class="flex items-center space-x-6">
         <div class="text-right">
-          <div class="text-2xl font-bold" id="totalTasks">0</div>
-          <div class="text-sm text-indigo-100">Total Tasks</div>
+          <div class="text-lg font-semibold" id="totalTasks">0</div>
+          <div class="text-xs text-gray-500">Total</div>
         </div>
         <div class="text-right">
-          <div class="text-2xl font-bold text-green-300" id="completedTasks">0</div>
-          <div class="text-sm text-indigo-100">Completed</div>
+          <div class="text-lg font-semibold text-green-600" id="completedTasks">0</div>
+          <div class="text-xs text-gray-500">Done</div>
         </div>
       </div>
     </div>
@@ -45,34 +41,32 @@
     <!-- Action Bar -->
     <div class="flex justify-between items-center mb-8">
       <h2 class="text-2xl font-semibold text-gray-800">Your Tasks</h2>
-      <button id="addTaskBtn" class="btn-primary flex items-center space-x-2">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-        </svg>
-        <span>Add Task</span>
+      <button id="addTaskBtn" class="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium py-2 px-3 rounded-md transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+        <span class="leading-none">Add</span>
       </button>
     </div>
 
     <!-- Task Grid -->
-    <div id="taskGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+    <div id="taskGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
       <!-- Tasks will be loaded here -->
     </div>
 
     <!-- Empty State -->
-    <div id="emptyState" class="text-center py-12 hidden">
+  <div id="emptyState" class="text-center py-12 hidden">
       <svg class="w-24 h-24 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
       </svg>
       <h3 class="text-xl font-medium text-gray-600 mb-2">No tasks yet</h3>
       <p class="text-gray-500 mb-4">Create your first task to get started!</p>
-      <button id="addFirstTaskBtn" class="btn-primary">Add Your First Task</button>
+      <button id="addFirstTaskBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium py-2 px-4 rounded-md">Add Your First Task</button>
     </div>
 
     <!-- Stats and Logs Section -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
       <!-- Statistics Chart -->
-      <div class="bg-white rounded-xl shadow-lg p-6">
-        <h3 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+  <div class="bg-white rounded-xl shadow-sm p-6">
+  <h3 class="text-lg font-medium text-gray-800 mb-4 flex items-center">
           <svg class="w-6 h-6 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
           </svg>
@@ -82,8 +76,8 @@
       </div>
 
       <!-- Request Log -->
-      <div class="bg-white rounded-xl shadow-lg p-6">
-        <h3 class="text-xl font-semibold text-gray-800 mb-4 flex items-center justify-between">
+  <div class="bg-white rounded-xl shadow-sm p-6">
+          <h3 class="text-lg font-medium text-gray-800 mb-4 flex items-center justify-between">
           <div class="flex items-center">
             <svg class="w-6 h-6 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -100,14 +94,14 @@
   </div>
 
   <!-- Add Task Modal -->
-  <div id="addTaskModal" class="fixed inset-0 z-50 hidden modal-backdrop">
-    <div class="flex items-center justify-center min-h-screen px-4">
-      <div class="bg-white rounded-xl shadow-2xl max-w-md w-full animate-fade-in">
+  <div id="addTaskModal" class="fixed inset-0 z-50 hidden modal-backdrop flex items-center justify-center px-4">
+    <div class="w-full max-w-2xl mx-auto animate-fade-in">
+      <div class="bg-white rounded-xl shadow-lg w-full overflow-hidden">
         <div class="p-6">
           <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xl font-semibold text-gray-800">Add New Task</h3>
+            <h3 class="text-lg font-semibold text-gray-800">Add New Task</h3>
             <button id="closeAddModal" class="text-gray-400 hover:text-gray-600">
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
               </svg>
             </button>
@@ -115,15 +109,15 @@
           <form id="taskForm">
             <div class="mb-4">
               <label class="block text-sm font-medium text-gray-700 mb-2">Task Title</label>
-              <input type="text" id="taskTitle" class="input-field" placeholder="Enter task title" required>
+              <input type="text" id="taskTitle" class="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Enter task title" required>
             </div>
             <div class="mb-6">
               <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
-              <textarea id="taskDescription" rows="3" class="input-field" placeholder="Enter task description"></textarea>
+              <textarea id="taskDescription" rows="3" class="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Enter task description"></textarea>
             </div>
             <div class="flex space-x-3">
-              <button type="button" id="cancelAdd" class="btn-secondary flex-1">Cancel</button>
-              <button type="submit" class="btn-primary flex-1 flex items-center justify-center">
+              <button type="button" id="cancelAdd" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 px-3 rounded-md">Cancel</button>
+              <button type="submit" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-3 rounded-md flex items-center justify-center">
                 <span class="method-indicator mr-2" data-method="POST">POST</span>
                 Add Task
               </button>
@@ -135,14 +129,15 @@
   </div>
 
   <!-- Edit Task Modal -->
-  <div id="editTaskModal" class="fixed inset-0 z-50 hidden modal-backdrop">
-    <div class="flex items-center justify-center min-h-screen px-4">
-      <div class="bg-white rounded-xl shadow-2xl max-w-md w-full animate-fade-in">
+  <div id="editTaskModal" class="fixed inset-0 z-50 hidden modal-backdrop flex items-center justify-center px-4">
+    <div class="w-full max-w-2xl mx-auto animate-fade-in">
+      <div class="bg-white rounded-xl shadow-lg w-full overflow-hidden">
+        <!-- Left: form -->
         <div class="p-6">
           <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xl font-semibold text-gray-800">Edit Task</h3>
+            <h3 class="text-lg font-semibold text-gray-800">Edit Task</h3>
             <button id="closeEditModal" class="text-gray-400 hover:text-gray-600">
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
               </svg>
             </button>
@@ -150,15 +145,15 @@
           <form id="editTaskForm">
             <div class="mb-4">
               <label class="block text-sm font-medium text-gray-700 mb-2">Task Title</label>
-              <input type="text" id="editTaskTitle" class="input-field" placeholder="Enter task title" required>
+              <input type="text" id="editTaskTitle" class="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Enter task title" required>
             </div>
             <div class="mb-6">
               <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
-              <textarea id="editTaskDescription" rows="3" class="input-field" placeholder="Enter task description"></textarea>
+              <textarea id="editTaskDescription" rows="3" class="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Enter task description"></textarea>
             </div>
             <div class="flex space-x-3">
-              <button type="button" id="cancelEdit" class="btn-secondary flex-1">Cancel</button>
-              <button type="submit" class="btn-primary flex-1 flex items-center justify-center">
+              <button type="button" id="cancelEdit" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 px-3 rounded-md">Cancel</button>
+              <button type="submit" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-3 rounded-md flex items-center justify-center">
                 <span class="method-indicator mr-2" data-method="PUT">PUT</span>
                 Update Task
               </button>
@@ -169,25 +164,24 @@
     </div>
   </div>
 
-  <!-- Delete Confirmation Modal -->
-  <div id="deleteModal" class="fixed inset-0 z-50 hidden modal-backdrop">
-    <div class="flex items-center justify-center min-h-screen px-4">
-      <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full animate-fade-in">
+  <div id="deleteModal" class="fixed inset-0 z-50 hidden modal-backdrop flex items-center justify-center px-4">
+    <div class="w-full max-w-md mx-auto animate-fade-in">
+      <div class="bg-white rounded-xl shadow-lg w-full overflow-hidden">
         <div class="p-6">
           <div class="flex items-center mb-4">
-            <div class="flex-shrink-0 w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+            <div class="flex-shrink-0 w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mr-4">
               <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
               </svg>
             </div>
-            <div class="ml-4">
+            <div>
               <h3 class="text-lg font-medium text-gray-900">Delete Task</h3>
               <p class="text-sm text-gray-500">Are you sure you want to delete this task? This action cannot be undone.</p>
             </div>
           </div>
           <div class="flex space-x-3">
-            <button id="cancelDelete" class="btn-secondary flex-1">Cancel</button>
-            <button id="confirmDelete" class="btn-danger flex-1 flex items-center justify-center">
+            <button id="cancelDelete" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 px-3 rounded-md">Cancel</button>
+            <button id="confirmDelete" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded-md flex items-center justify-center">
               <span class="method-indicator mr-2" data-method="DELETE">DELETE</span>
               Delete
             </button>

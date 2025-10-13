@@ -78,40 +78,79 @@ function setupEventListeners() {
       closeAllModals();
     }
   });
+
+  // Delegated event listeners for task actions (toggle, edit, delete)
+  taskGrid.addEventListener('click', (e) => {
+    const toggleBtn = e.target.closest('[data-action="toggle"]');
+    const editBtn = e.target.closest('[data-action="edit"]');
+    const deleteBtn = e.target.closest('[data-action="delete"]');
+    if (toggleBtn) {
+      const id = toggleBtn.getAttribute('data-id');
+      toggleTask(Number(id));
+    } else if (editBtn) {
+      const id = editBtn.getAttribute('data-id');
+      apiRequest('GET', `/tasks/${id}`).then(task => openEditModal(task));
+    } else if (deleteBtn) {
+      const id = deleteBtn.getAttribute('data-id');
+      openDeleteModal(Number(id));
+    }
+  });
 }
 
 function openAddModal() {
+  // store opener for focus return
+  addTaskModal.dataset.opener = document.activeElement ? document.activeElement.id || document.activeElement.tagName : '';
   addTaskModal.classList.remove('hidden');
-  taskTitle.focus();
+  // focus first input
+  setTimeout(() => taskTitle.focus(), 50);
 }
 
 function closeAddModalHandler() {
   addTaskModal.classList.add('hidden');
   taskForm.reset();
+  // restore focus
+  const opener = addTaskModal.dataset.opener;
+  if (opener) {
+    const el = document.getElementById(opener);
+    if (el) el.focus();
+  }
 }
 
 function openEditModal(task) {
   currentEditId = task.id;
   editTaskTitle.value = task.title;
   editTaskDescription.value = task.description;
+  editTaskModal.dataset.opener = document.activeElement ? document.activeElement.id || document.activeElement.tagName : '';
   editTaskModal.classList.remove('hidden');
-  editTaskTitle.focus();
+  setTimeout(() => editTaskTitle.focus(), 50);
 }
 
 function closeEditModalHandler() {
   editTaskModal.classList.add('hidden');
   editTaskForm.reset();
   currentEditId = null;
+  const opener = editTaskModal.dataset.opener;
+  if (opener) {
+    const el = document.getElementById(opener);
+    if (el) el.focus();
+  }
 }
 
 function openDeleteModal(id) {
   currentDeleteId = id;
+  deleteModal.dataset.opener = document.activeElement ? document.activeElement.id || document.activeElement.tagName : '';
   deleteModal.classList.remove('hidden');
+  setTimeout(() => confirmDelete.focus(), 50);
 }
 
 function closeDeleteModal() {
   deleteModal.classList.add('hidden');
   currentDeleteId = null;
+  const opener = deleteModal.dataset.opener;
+  if (opener) {
+    const el = document.getElementById(opener);
+    if (el) el.focus();
+  }
 }
 
 function closeAllModals() {
@@ -178,18 +217,18 @@ function createTaskElement(task) {
         <h3 class="text-lg font-semibold text-gray-800 ${task.completed ? 'line-through text-gray-500' : ''} mb-2">${task.title}</h3>
         <p class="text-gray-600 text-sm leading-relaxed">${task.description || 'No description'}</p>
       </div>
-      <div class="flex space-x-2 ml-4">
-        <button onclick="toggleTask(${task.id})" class="p-2 rounded-lg ${task.completed ? 'bg-green-100 text-green-600 hover:bg-green-200' : 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200'} transition duration-200" title="${task.completed ? 'Mark as pending' : 'Mark as completed'}">
+      <div class="flex space-x-2 ml-4" role="group" aria-label="Task actions">
+        <button type="button" data-action="toggle" data-id="${task.id}" aria-label="${task.completed ? 'Mark as pending' : 'Mark as completed'}" class="p-2 rounded-lg ${task.completed ? 'bg-green-100 text-green-600 hover:bg-green-200' : 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200'} transition duration-200">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${task.completed ? 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' : 'M15 12H9m0 0V8m0 4v4m0-4h6m-6 0H9'}"></path>
           </svg>
         </button>
-        <button onclick="editTask(${task.id})" class="p-2 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 transition duration-200" title="Edit task">
+        <button type="button" data-action="edit" data-id="${task.id}" aria-label="Edit task" class="p-2 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 transition duration-200">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
           </svg>
         </button>
-        <button onclick="deleteTask(${task.id})" class="p-2 rounded-lg bg-red-100 text-red-600 hover:bg-red-200 transition duration-200" title="Delete task">
+        <button type="button" data-action="delete" data-id="${task.id}" aria-label="Delete task" class="p-2 rounded-lg bg-red-100 text-red-600 hover:bg-red-200 transition duration-200">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
           </svg>
