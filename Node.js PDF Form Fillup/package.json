@@ -4,7 +4,8 @@
   "description": "Simple PDF Form Filling Application",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "institution": "node index-institution.js"
   },
   "keywords": ["pdf", "form", "fill"],
   "author": "",
