@@ -41,6 +41,17 @@
         <input type="file" id="pdf-upload" accept=".pdf" class="p-2 border border-gray-300 rounded-md">
     </div>
 
+    <div class="mb-4 flex items-center space-x-4">
+        <button id="prev-page" class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 disabled:opacity-50" disabled>Previous Page</button>
+        <span id="page-info" class="text-lg font-semibold">Page: 0 / 0</span>
+        <button id="next-page" class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 disabled:opacity-50" disabled>Next Page</button>
+        <div class="flex items-center space-x-2">
+            <label for="page-num" class="font-medium">Go to page:</label>
+            <input type="number" id="page-num" min="1" class="w-16 p-1 border border-gray-300 rounded-md">
+            <button id="go-to-page" class="bg-blue-500 text-white px-3 py-1 rounded-md hover:bg-blue-600">Go</button>
+        </div>
+    </div>
+
     <div id="pdf-viewer-container" class="relative">
         <canvas id="pdf-canvas" class="border border-gray-400"></canvas>
         <div id="coordinates-display" class="hidden">X: 0, Y: 0</div>
@@ -89,6 +100,12 @@
         let viewport;
         let referencePoint = null; // { x: canvasX, y: canvasY, refX: userX, refY: userY }
 
+        const prevPageBtn = document.getElementById('prev-page');
+        const nextPageBtn = document.getElementById('next-page');
+        const pageInfo = document.getElementById('page-info');
+        const pageNumInput = document.getElementById('page-num');
+        const goToPageBtn = document.getElementById('go-to-page');
+
         function renderPage(num) {
             pageRendering = true;
             pdfDoc.getPage(num).then(function(page) {
@@ -108,6 +125,7 @@
                         renderPage(pageNumPending);
                         pageNumPending = null;
                     }
+                    updatePageControls();
                 });
             });
         }
@@ -135,6 +153,7 @@
                         currentReferenceDisplay.textContent = 'Current Reference: Not set';
                         refXInput.value = '';
                         refYInput.value = '';
+                        updatePageControls();
                     });
                 };
                 fileReader.readAsArrayBuffer(file);
@@ -182,27 +201,51 @@
             refYInput.value = ((viewport.height - canvasY) / scale).toFixed(2);
         });
 
-        setReferenceButton.addEventListener('click', function() {
-            const userRefX = parseFloat(refXInput.value);
-            const userRefY = parseFloat(refYInput.value);
+        function updatePageControls() {
+            if (!pdfDoc) return;
 
-            if (!isNaN(userRefX) && !isNaN(userRefY) && pdfDoc) {
-                // We need the canvas coordinates of the clicked point that correspond to userRefX, userRefY
-                // For now, let's assume the user clicks and then sets the reference based on that click.
-                // The current input values are based on the last click.
-                const lastClickedCanvasX = parseFloat(refXInput.value) * scale;
-                const lastClickedCanvasY = viewport.height - (parseFloat(refYInput.value) * scale);
+            const totalPages = pdfDoc.numPages;
+            pageInfo.textContent = `Page: ${pageNum} / ${totalPages}`;
+            pageNumInput.value = pageNum;
 
+            prevPageBtn.disabled = pageNum <= 1;
+            nextPageBtn.disabled = pageNum >= totalPages;
+            pageNumInput.max = totalPages;
+        }
 
-                referencePoint = {
-                    x: lastClickedCanvasX,
-                    y: lastClickedCanvasY,
-                    refX: userRefX,
-                    refY: userRefY
-                };
-                currentReferenceDisplay.textContent = `Current Reference: (${userRefX.toFixed(2)}, ${userRefY.toFixed(2)}) at Canvas (${lastClickedCanvasX.toFixed(2)}, ${lastClickedCanvasY.toFixed(2)})`;
-            } else {
-                alert('Please load a PDF and click on it to select a reference point, then enter its real-world coordinates.');
+        function goToPage(pageNumber) {
+            if (!pdfDoc || pageNumber < 1 || pageNumber > pdfDoc.numPages) return;
+            pageNum = pageNumber;
+            queueRenderPage(pageNum);
+        }
+
+        prevPageBtn.addEventListener('click', function() {
+            if (pageNum > 1) {
+                pageNum--;
+                queueRenderPage(pageNum);
+            }
+        });
+
+        nextPageBtn.addEventListener('click', function() {
+            if (pageNum < pdfDoc.numPages) {
+                pageNum++;
+                queueRenderPage(pageNum);
+            }
+        });
+
+        goToPageBtn.addEventListener('click', function() {
+            const pageNumber = parseInt(pageNumInput.value);
+            if (!isNaN(pageNumber)) {
+                goToPage(pageNumber);
+            }
+        });
+
+        pageNumInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                const pageNumber = parseInt(pageNumInput.value);
+                if (!isNaN(pageNumber)) {
+                    goToPage(pageNumber);
+                }
             }
         });
 

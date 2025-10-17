@@ -67,6 +67,12 @@ const sampleData = {
   nomineeEmail: 'emma.doe@example.com',
   nomineePhotoUrl: '',
   nomineeSignatureUrl: '',
+  // Official Use Only fields
+  officialRegistrationNo: 'OFF-REG-001',
+  officialDate: '17/10/2025',
+  officialNoOfUnits: '100',
+  officialSaleNo: 'OFF-SALE-001',
+  officialUnitAllocationConfirmationNo: 'CONF-123456',
 };
 
 async function main() {

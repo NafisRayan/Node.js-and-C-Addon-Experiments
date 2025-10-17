@@ -48,9 +48,11 @@ class PdfService {
     const pdfBytes = fs.readFileSync(templatePath);
     const pdfDoc = await PDFDocument.load(pdfBytes);
     const page1 = pdfDoc.getPages()[0];
+    const page2 = pdfDoc.getPages()[1]; // Second page for Official Use Only
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
     const writeText = (opts) => this.writeText(page1, font, opts);
+    const writeTextPage2 = (opts) => this.writeText(page2, font, opts);
 
     // top section: registration number, sale number, amount, bank info, unit price
     writeText({ text: data.registrationNumber, x: 524, y: 695, size: 7.5 });
@@ -162,19 +164,19 @@ class PdfService {
       });
     }
 
-    // Nominee section (using coordinates from Nominee.json)
-    writeText({ text: data.nomineeName, x: 52, y: 226, size: 7.5 });
-    writeText({ text: data.nomineeFatherName, x: 82, y: 213, size: 7.5 });
-    writeText({ text: data.nomineeMotherName, x: 85, y: 201, size: 7.5 });
-    writeText({ text: data.nomineeSpouseName, x: 86, y: 190, size: 7.5 });
-    writeText({ text: data.nomineeDob, x: 78, y: 176, size: 7.5 });
-    writeText({ text: data.nomineeOccupation, x: 264, y: 176, size: 7.5 });
-    writeText({ text: data.nomineeNationality, x: 70, y: 165, size: 7.5 });
-    writeText({ text: data.nomineeNid, x: 264, y: 164, size: 7.5 });
-    writeText({ text: data.nomineePresentAddress, x: 90, y: 153, size: 7.5 });
-    writeText({ text: data.nomineePermanentAddress, x: 102, y: 140, size: 7.5 });
-    writeText({ text: data.nomineeMobile, x: 106, y: 128, size: 7.5 });
-    writeText({ text: data.nomineeEmail, x: 269, y: 128, size: 7.5 });
+    // Nominee section (using provided coordinates)
+    writeText({ text: data.nomineeName, x: 49, y: 222, size: 7.5 });
+    writeText({ text: data.nomineeFatherName, x: 78, y: 211, size: 7.5 });
+    writeText({ text: data.nomineeMotherName, x: 84, y: 199, size: 7.5 });
+    writeText({ text: data.nomineeSpouseName, x: 84, y: 187, size: 7.5 });
+    writeText({ text: data.nomineeDob, x: 74, y: 174, size: 7.5 });
+    writeText({ text: data.nomineeOccupation, x: 262, y: 174, size: 7.5 });
+    writeText({ text: data.nomineeNationality, x: 68, y: 161, size: 7.5 });
+    writeText({ text: data.nomineeNid, x: 262, y: 162, size: 7.5 });
+    writeText({ text: data.nomineePresentAddress, x: 86, y: 149, size: 7.5 });
+    writeText({ text: data.nomineePermanentAddress, x: 98, y: 138, size: 7.5 });
+    writeText({ text: data.nomineeMobile, x: 104, y: 125, size: 7.5 });
+    writeText({ text: data.nomineeEmail, x: 267, y: 125, size: 7.5 });
 
     // add nominee photo
     if (data.nomineePhotoUrl) {
@@ -207,6 +209,13 @@ class PdfService {
         height: 30,
       });
     }
+
+    // Official Use Only section (2nd page)
+    writeTextPage2({ text: data.officialRegistrationNo, x: 104, y: 381, size: 8 });
+    writeTextPage2({ text: data.officialSaleNo, x: 360, y: 380, size: 8 });
+    writeTextPage2({ text: data.officialDate, x: 64, y: 365, size: 8 });
+    writeTextPage2({ text: data.officialUnitAllocationConfirmationNo, x: 386, y: 365, size: 8 });
+    writeTextPage2({ text: data.officialNoOfUnits, x: 88, y: 349, size: 8 });
 
     return Buffer.from(await pdfDoc.save());
   }
