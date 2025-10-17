@@ -1,0 +1,62 @@
+[
+  {
+    "name": "Name",
+    "x": 54.74,
+    "y": 358.93
+  },
+  {
+    "name": "Father's Name",
+    "x": 82.74,
+    "y": 346.93
+  },
+  {
+    "name": "Mother's Name",
+    "x": 86.74,
+    "y": 335.3
+  },
+  {
+    "name": "Spouse's Name",
+    "x": 86.07,
+    "y": 322.26
+  },
+  {
+    "name": "Date of Birth",
+    "x": 78.74,
+    "y": 310.19
+  },
+  {
+    "name": "Occupation",
+    "x": 266.07,
+    "y": 310.26
+  },
+  {
+    "name": "Nationality",
+    "x": 70.07,
+    "y": 297.96
+  },
+  {
+    "name": "National ID No",
+    "x": 264.07,
+    "y": 297.3
+  },
+  {
+    "name": "Present Address",
+    "x": 88.74,
+    "y": 285.96
+  },
+  {
+    "name": "Permanent Address",
+    "x": 100.74,
+    "y": 273.3
+  },
+  {
+    "name": "Telephone/Mobile No",
+    "x": 108.07,
+    "y": 261.59
+  },
+  {
+    "name": "Email",
+    "x": 268.07,
+    "y": 261.59
+  }
+]

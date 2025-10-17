@@ -1,0 +1,16 @@
+{
+  "name": "pdf-form-fillup",
+  "version": "1.0.0",
+  "description": "Simple PDF Form Filling Application",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": ["pdf", "form", "fill"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "pdf-lib": "^1.17.1",
+    "sharp": "^0.33.0"
+  }
+}
