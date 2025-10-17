@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Coordinate Finder</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #f0f0f0;
+        }
+        #pdf-viewer-container {
+            position: relative;
+            border: 1px solid #ccc;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        #pdf-canvas {
+            display: block;
+        }
+        #coordinates-display {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-4">
+    <h1 class="text-3xl font-bold mb-6">PDF Coordinate Finder</h1>
+
+    <div class="mb-4">
+        <input type="file" id="pdf-upload" accept=".pdf" class="p-2 border border-gray-300 rounded-md">
+    </div>
+
+    <div id="pdf-viewer-container" class="relative">
+        <canvas id="pdf-canvas" class="border border-gray-400"></canvas>
+        <div id="coordinates-display" class="hidden">X: 0, Y: 0</div>
+    </div>
+
+    <div class="mt-4 p-4 bg-white rounded-md shadow-md">
+        <h2 class="text-xl font-semibold mb-2">Reference Point</h2>
+        <div class="flex items-center space-x-2 mb-2">
+            <label for="ref-x" class="font-medium">Ref X:</label>
+            <input type="number" id="ref-x" class="w-24 p-1 border border-gray-300 rounded-md">
+            <label for="ref-y" class="font-medium">Ref Y:</label>
+            <input type="number" id="ref-y" class="w-24 p-1 border border-gray-300 rounded-md">
+        </div>
+        <button id="set-reference" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">Set Reference Point</button>
+        <p id="current-reference" class="mt-2 text-sm text-gray-700">Current Reference: Not set</p>
+    </div>
+
+    <div class="mt-4 p-4 bg-white rounded-md shadow-md">
+        <h2 class="text-xl font-semibold mb-2">Save & Export Coordinates</h2>
+        <div class="flex items-center space-x-2 mb-2">
+            <input type="text" id="coord-name" placeholder="Name" class="w-32 p-1 border border-gray-300 rounded-md">
+            <button id="save-coord" class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600">Save Coordinate</button>
+            <button id="export-json" class="bg-purple-500 text-white px-4 py-2 rounded-md hover:bg-purple-600">Export JSON</button>
+        </div>
+        <ul id="coord-list" class="mt-2 text-sm text-gray-700"></ul>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.worker.min.js';
+
+        const pdfUpload = document.getElementById('pdf-upload');
+        const pdfCanvas = document.getElementById('pdf-canvas');
+        const coordinatesDisplay = document.getElementById('coordinates-display');
+        const setReferenceButton = document.getElementById('set-reference');
+        const refXInput = document.getElementById('ref-x');
+        const refYInput = document.getElementById('ref-y');
+        const currentReferenceDisplay = document.getElementById('current-reference');
+        const ctx = pdfCanvas.getContext('2d');
+
+        let pdfDoc = null;
+        let pageNum = 1;
+        let pageRendering = false;
+        let pageNumPending = null;
+        let scale = 1.5;
+        let viewport;
+        let referencePoint = null; // { x: canvasX, y: canvasY, refX: userX, refY: userY }
+
+        function renderPage(num) {
+            pageRendering = true;
+            pdfDoc.getPage(num).then(function(page) {
+                viewport = page.getViewport({ scale: scale });
+                pdfCanvas.height = viewport.height;
+                pdfCanvas.width = viewport.width;
+
+                const renderContext = {
+                    canvasContext: ctx,
+                    viewport: viewport
+                };
+                const renderTask = page.render(renderContext);
+
+                renderTask.promise.then(function() {
+                    pageRendering = false;
+                    if (pageNumPending !== null) {
+                        renderPage(pageNumPending);
+                        pageNumPending = null;
+                    }
+                });
+            });
+        }
+
+        function queueRenderPage(num) {
+            if (pageRendering) {
+                pageNumPending = num;
+            } else {
+                renderPage(num);
+            }
+        }
+
+        pdfUpload.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file && file.type === 'application/pdf') {
+                const fileReader = new FileReader();
+                fileReader.onload = function() {
+                    const typedarray = new Uint8Array(this.result);
+                    pdfjsLib.getDocument(typedarray).promise.then(function(pdf) {
+                        pdfDoc = pdf;
+                        pageNum = 1;
+                        renderPage(pageNum);
+                        coordinatesDisplay.classList.remove('hidden');
+                        referencePoint = null; // Reset reference when new PDF is loaded
+                        currentReferenceDisplay.textContent = 'Current Reference: Not set';
+                        refXInput.value = '';
+                        refYInput.value = '';
+                    });
+                };
+                fileReader.readAsArrayBuffer(file);
+            }
+        });
+
+        pdfCanvas.addEventListener('mousemove', function(event) {
+            if (!pdfDoc) return;
+
+            const rect = pdfCanvas.getBoundingClientRect();
+            const canvasX = event.clientX - rect.left;
+            const canvasY = event.clientY - rect.top;
+
+            let displayX, displayY;
+
+            if (referencePoint) {
+                // Calculate position relative to reference point
+                const deltaX = canvasX - referencePoint.x;
+                const deltaY = canvasY - referencePoint.y;
+
+                // Scale deltas to user-defined units
+                // Assuming 1 unit in canvas = 1 unit in user-defined coordinates for now
+                // This will need adjustment if user units are different from canvas pixels
+                displayX = referencePoint.refX + deltaX / scale;
+                displayY = referencePoint.refY - deltaY / scale; // Y-axis inverted for bottom-left origin
+
+            } else {
+                // Display raw canvas coordinates (bottom-left origin)
+                displayX = canvasX / scale;
+                displayY = (viewport.height - canvasY) / scale;
+            }
+
+            coordinatesDisplay.textContent = `X: ${displayX.toFixed(2)}, Y: ${displayY.toFixed(2)}`;
+        });
+
+        pdfCanvas.addEventListener('click', function(event) {
+            if (!pdfDoc) return;
+
+            const rect = pdfCanvas.getBoundingClientRect();
+            const canvasX = event.clientX - rect.left;
+            const canvasY = event.clientY - rect.top;
+
+            // Store the clicked canvas coordinates
+            refXInput.value = (canvasX / scale).toFixed(2);
+            refYInput.value = ((viewport.height - canvasY) / scale).toFixed(2);
+        });
+
+        setReferenceButton.addEventListener('click', function() {
+            const userRefX = parseFloat(refXInput.value);
+            const userRefY = parseFloat(refYInput.value);
+
+            if (!isNaN(userRefX) && !isNaN(userRefY) && pdfDoc) {
+                // We need the canvas coordinates of the clicked point that correspond to userRefX, userRefY
+                // For now, let's assume the user clicks and then sets the reference based on that click.
+                // The current input values are based on the last click.
+                const lastClickedCanvasX = parseFloat(refXInput.value) * scale;
+                const lastClickedCanvasY = viewport.height - (parseFloat(refYInput.value) * scale);
+
+
+                referencePoint = {
+                    x: lastClickedCanvasX,
+                    y: lastClickedCanvasY,
+                    refX: userRefX,
+                    refY: userRefY
+                };
+                currentReferenceDisplay.textContent = `Current Reference: (${userRefX.toFixed(2)}, ${userRefY.toFixed(2)}) at Canvas (${lastClickedCanvasX.toFixed(2)}, ${lastClickedCanvasY.toFixed(2)})`;
+            } else {
+                alert('Please load a PDF and click on it to select a reference point, then enter its real-world coordinates.');
+            }
+        });
+
+        // --- Coordinate Saving & Export Logic ---
+        const saveCoordBtn = document.getElementById('save-coord');
+        const exportJsonBtn = document.getElementById('export-json');
+        const coordNameInput = document.getElementById('coord-name');
+        const coordList = document.getElementById('coord-list');
+
+        let savedCoordinates = [];
+
+        pdfCanvas.addEventListener('click', function(event) {
+            if (!pdfDoc) return;
+
+            const rect = pdfCanvas.getBoundingClientRect();
+            const canvasX = event.clientX - rect.left;
+            const canvasY = event.clientY - rect.top;
+
+            // Store the clicked canvas coordinates
+            refXInput.value = (canvasX / scale).toFixed(2);
+            refYInput.value = ((viewport.height - canvasY) / scale).toFixed(2);
+
+            // Save last clicked position for coordinate saving
+            pdfCanvas.lastClicked = {
+                canvasX,
+                canvasY
+            };
+        });
+
+        saveCoordBtn.addEventListener('click', function() {
+            if (!pdfDoc || !pdfCanvas.lastClicked) return;
+            const name = coordNameInput.value.trim();
+            if (!name) {
+                alert('Please enter a name for the coordinate.');
+                return;
+            }
+
+            let displayX, displayY;
+            const { canvasX, canvasY } = pdfCanvas.lastClicked;
+
+            if (referencePoint) {
+                const deltaX = canvasX - referencePoint.x;
+                const deltaY = canvasY - referencePoint.y;
+                displayX = referencePoint.refX + deltaX / scale;
+                displayY = referencePoint.refY - deltaY / scale;
+            } else {
+                displayX = canvasX / scale;
+                displayY = (viewport.height - canvasY) / scale;
+            }
+
+            savedCoordinates.push({
+                name,
+                x: parseFloat(displayX.toFixed(2)),
+                y: parseFloat(displayY.toFixed(2))
+            });
+
+            updateCoordList();
+            coordNameInput.value = '';
+        });
+
+        function updateCoordList() {
+            coordList.innerHTML = '';
+            savedCoordinates.forEach(coord => {
+                const li = document.createElement('li');
+                li.textContent = `${coord.name}: X=${coord.x}, Y=${coord.y}`;
+                coordList.appendChild(li);
+            });
+        }
+
+        exportJsonBtn.addEventListener('click', function() {
+            if (savedCoordinates.length === 0) {
+                alert('No coordinates to export.');
+                return;
+            }
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(savedCoordinates, null, 2));
+            const dlAnchor = document.createElement('a');
+            dlAnchor.setAttribute("href", dataStr);
+            dlAnchor.setAttribute("download", "coordinates.json");
+            document.body.appendChild(dlAnchor);
+            dlAnchor.click();
+            dlAnchor.remove();
+        });
+    </script>
+</body>
+</html>
