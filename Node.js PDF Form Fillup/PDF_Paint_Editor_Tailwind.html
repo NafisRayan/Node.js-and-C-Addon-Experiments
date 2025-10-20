@@ -24,9 +24,15 @@
 
           <div class="mt-4">
             <label class="block text-sm font-medium mb-2">Tool</label>
-            <div class="flex gap-2">
+            <div class="grid grid-cols-2 gap-2">
               <button id="penBtn" class="tool-btn flex-1 py-2 rounded bg-indigo-600 text-white">Pen</button>
               <button id="eraserBtn" class="tool-btn flex-1 py-2 rounded bg-slate-200">Eraser</button>
+              <button id="lineBtn" class="tool-btn flex-1 py-2 rounded bg-slate-200">Line</button>
+              <button id="squareBtn" class="tool-btn flex-1 py-2 rounded bg-slate-200">Square</button>
+              <button id="rectangleBtn" class="tool-btn flex-1 py-2 rounded bg-slate-200">Rectangle</button>
+              <button id="circleBtn" class="tool-btn flex-1 py-2 rounded bg-slate-200">Circle</button>
+              <button id="verticalBtn" class="tool-btn flex-1 py-2 rounded bg-slate-200">Vertical</button>
+              <button id="horizontalBtn" class="tool-btn flex-1 py-2 rounded bg-slate-200">Horizontal</button>
             </div>
           </div>
 
@@ -63,7 +69,7 @@
         </div>
       </div>
 
-      <p class="text-sm text-slate-600">Usage: Open a PDF, draw with Pen, use Eraser to clear strokes, Undo or Clear, then save PNG or export a new PDF with drawings flattened.</p>
+      <p class="text-sm text-slate-600">Usage: Open a PDF, select a tool (Pen, Eraser, Line, Square, Rectangle, Circle, Vertical, Horizontal), draw with mouse/touch, change color and size, Undo or Clear, then save PNG or export PDF with vector annotations. Eraser removes freehand strokes and shapes it overlaps.</p>
     </div>
 
     <script>
@@ -75,8 +81,54 @@
       const drawCanvas = document.getElementById('drawCanvas');
       const viewerContainer = document.getElementById('viewerContainer');
 
-      const penBtn = document.getElementById('penBtn');
+      // Helper functions for eraser on shapes
+      function getStrokeBbox(stroke) {
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        for (const p of stroke.points) {
+          minX = Math.min(minX, p.x);
+          maxX = Math.max(maxX, p.x);
+          minY = Math.min(minY, p.y);
+          maxY = Math.max(maxY, p.y);
+        }
+        return { minX, maxX, minY, maxY };
+      }
+
+      function getShapeBbox(shape) {
+        const { start, end } = shape;
+        let minX, maxX, minY, maxY;
+        if (shape.type === 'line' || shape.type === 'vertical' || shape.type === 'horizontal') {
+          minX = Math.min(start.x, end.x);
+          maxX = Math.max(start.x, end.x);
+          minY = Math.min(start.y, end.y);
+          maxY = Math.max(start.y, end.y);
+        } else if (shape.type === 'rectangle' || shape.type === 'square') {
+          const width = end.x - start.x;
+          const height = end.y - start.y;
+          minX = Math.min(start.x, start.x + width);
+          maxX = Math.max(start.x, start.x + width);
+          minY = Math.min(start.y, start.y + height);
+          maxY = Math.max(start.y, start.y + height);
+        } else if (shape.type === 'circle') {
+          const radius = Math.sqrt((end.x - start.x) ** 2 + (end.y - start.y) ** 2);
+          minX = start.x - radius;
+          maxX = start.x + radius;
+          minY = start.y - radius;
+          maxY = start.y + radius;
+        }
+        return { minX, maxX, minY, maxY };
+      }
+
+      function bboxesOverlap(bbox1, bbox2) {
+        return !(bbox1.maxX < bbox2.minX || bbox1.minX > bbox2.maxX ||
+                 bbox1.maxY < bbox2.minY || bbox1.minY > bbox2.maxY);
+      }
       const eraserBtn = document.getElementById('eraserBtn');
+      const lineBtn = document.getElementById('lineBtn');
+      const squareBtn = document.getElementById('squareBtn');
+      const rectangleBtn = document.getElementById('rectangleBtn');
+      const circleBtn = document.getElementById('circleBtn');
+      const verticalBtn = document.getElementById('verticalBtn');
+      const horizontalBtn = document.getElementById('horizontalBtn');
       const colorInput = document.getElementById('colorInput');
       const sizeInput = document.getElementById('sizeInput');
       const undoBtn = document.getElementById('undoBtn');
@@ -89,23 +141,25 @@
       let scale = 1.5;
 
       function setActiveTool(tool) {
-        if (tool === 'pen') {
-          penBtn.classList.add('bg-indigo-600', 'text-white');
-          penBtn.classList.remove('bg-slate-200', 'text-slate-800');
-          eraserBtn.classList.remove('bg-indigo-600', 'text-white');
-          eraserBtn.classList.add('bg-slate-200');
-          drawState.tool = 'pen';
-        } else {
-          eraserBtn.classList.add('bg-indigo-600', 'text-white');
-          eraserBtn.classList.remove('bg-slate-200');
-          penBtn.classList.remove('bg-indigo-600', 'text-white');
-          penBtn.classList.add('bg-slate-200');
-          drawState.tool = 'eraser';
-        }
+        const buttons = [penBtn, eraserBtn, lineBtn, squareBtn, rectangleBtn, circleBtn, verticalBtn, horizontalBtn];
+        buttons.forEach(btn => {
+          btn.classList.remove('bg-indigo-600', 'text-white');
+          btn.classList.add('bg-slate-200');
+        });
+        const activeBtn = document.getElementById(tool + 'Btn');
+        activeBtn.classList.add('bg-indigo-600', 'text-white');
+        activeBtn.classList.remove('bg-slate-200');
+        drawState.tool = tool;
       }
 
       penBtn.addEventListener('click', () => setActiveTool('pen'));
       eraserBtn.addEventListener('click', () => setActiveTool('eraser'));
+      lineBtn.addEventListener('click', () => setActiveTool('line'));
+      squareBtn.addEventListener('click', () => setActiveTool('square'));
+      rectangleBtn.addEventListener('click', () => setActiveTool('rectangle'));
+      circleBtn.addEventListener('click', () => setActiveTool('circle'));
+      verticalBtn.addEventListener('click', () => setActiveTool('vertical'));
+      horizontalBtn.addEventListener('click', () => setActiveTool('horizontal'));
 
       let originalPdfArrayBuffer = null;
 
@@ -156,6 +210,8 @@
         color: colorInput.value,
         size: parseInt(sizeInput.value, 10),
         strokes: [], // each stroke: {tool, color, size, points: [{x,y}]}
+        shapes: [], // each shape: {type, start: {x,y}, end: {x,y}, color, size}
+        currentShape: null, // for preview
       };
 
       colorInput.addEventListener('input', (e) => drawState.color = e.target.value);
@@ -172,27 +228,55 @@
         drawCanvas.setPointerCapture(e.pointerId);
         drawState.drawing = true;
         const p = getCanvasPoint(e);
-        const stroke = { tool: drawState.tool, color: drawState.color, size: drawState.size, points: [p] };
-        drawState.strokes.push(stroke);
+        if (drawState.tool === 'pen' || drawState.tool === 'eraser') {
+          const stroke = { tool: drawState.tool, color: drawState.color, size: drawState.size, points: [p] };
+          drawState.strokes.push(stroke);
+        } else {
+          // shape tools
+          drawState.currentShape = { type: drawState.tool, start: p, end: p, color: drawState.color, size: drawState.size };
+        }
         redraw();
       });
 
       drawCanvas.addEventListener('pointermove', (e) => {
         if (!drawState.drawing) return;
         const p = getCanvasPoint(e);
-        const stroke = drawState.strokes[drawState.strokes.length - 1];
-        stroke.points.push(p);
-        redraw();
+        if (drawState.tool === 'pen' || drawState.tool === 'eraser') {
+          const stroke = drawState.strokes[drawState.strokes.length - 1];
+          stroke.points.push(p);
+          redraw();
+        } else {
+          // update shape end
+          if (drawState.tool === 'vertical') {
+            p.x = drawState.currentShape.start.x;
+          } else if (drawState.tool === 'horizontal') {
+            p.y = drawState.currentShape.start.y;
+          }
+          drawState.currentShape.end = p;
+          redraw();
+        }
       });
 
       drawCanvas.addEventListener('pointerup', (e) => {
         drawCanvas.releasePointerCapture(e.pointerId);
         drawState.drawing = false;
+        if (drawState.tool !== 'pen' && drawState.tool !== 'eraser') {
+          // add shape
+          drawState.shapes.push(drawState.currentShape);
+          drawState.currentShape = null;
+        } else if (drawState.tool === 'eraser') {
+          // check for erasing shapes
+          const eraserStroke = drawState.strokes[drawState.strokes.length - 1];
+          const eraserBbox = getStrokeBbox(eraserStroke);
+          drawState.shapes = drawState.shapes.filter(shape => !bboxesOverlap(eraserBbox, getShapeBbox(shape)));
+          redraw();
+        }
       });
 
       function redraw() {
         const ctx = drawCanvas.getContext('2d');
         ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+        // draw strokes
         for (const stroke of drawState.strokes) {
           ctx.lineJoin = 'round';
           ctx.lineCap = 'round';
@@ -217,10 +301,58 @@
             ctx.stroke();
           }
         }
+        // draw shapes
+        ctx.globalCompositeOperation = 'source-over';
+        for (const shape of drawState.shapes) {
+          drawShape(ctx, shape);
+        }
+        // draw current shape preview
+        if (drawState.currentShape) {
+          drawShape(ctx, drawState.currentShape);
+        }
+      }
+
+      function drawShape(ctx, shape) {
+        ctx.strokeStyle = shape.color;
+        ctx.lineWidth = shape.size;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        const { start, end } = shape;
+        switch (shape.type) {
+          case 'line':
+          case 'vertical':
+          case 'horizontal':
+            ctx.beginPath();
+            ctx.moveTo(start.x, start.y);
+            ctx.lineTo(end.x, end.y);
+            ctx.stroke();
+            break;
+          case 'rectangle':
+            const width = end.x - start.x;
+            const height = end.y - start.y;
+            ctx.strokeRect(start.x, start.y, width, height);
+            break;
+          case 'square':
+            const side = Math.min(Math.abs(end.x - start.x), Math.abs(end.y - start.y));
+            const dirX = end.x > start.x ? 1 : -1;
+            const dirY = end.y > start.y ? 1 : -1;
+            ctx.strokeRect(start.x, start.y, side * dirX, side * dirY);
+            break;
+          case 'circle':
+            const radius = Math.sqrt((end.x - start.x) ** 2 + (end.y - start.y) ** 2);
+            ctx.beginPath();
+            ctx.arc(start.x, start.y, radius, 0, 2 * Math.PI);
+            ctx.stroke();
+            break;
+        }
       }
 
       undoBtn.addEventListener('click', () => {
-        drawState.strokes.pop();
+        if (drawState.shapes.length > 0) {
+          drawState.shapes.pop();
+        } else if (drawState.strokes.length > 0) {
+          drawState.strokes.pop();
+        }
         redraw();
       });
 
@@ -228,6 +360,7 @@
 
       function clearAllStrokes() {
         drawState.strokes = [];
+        drawState.shapes = [];
         const ctx = drawCanvas.getContext('2d');
         ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
       }
@@ -334,6 +467,61 @@
                 color: rgb(col.r, col.g, col.b),
                 // round caps are not directly supported; thickness provides decent look
               });
+            }
+          }
+
+          // Draw shapes
+          for (const shape of drawState.shapes) {
+            const col = hexToRgbNormalized(shape.color || '#000000');
+            const thickness = shape.size * (pdfWidth / canvasW);
+            const s = toPdfPoint(shape.start);
+            const e = toPdfPoint(shape.end);
+            switch (shape.type) {
+              case 'line':
+              case 'vertical':
+              case 'horizontal':
+                page.drawLine({
+                  start: s,
+                  end: e,
+                  thickness,
+                  color: rgb(col.r, col.g, col.b),
+                });
+                break;
+              case 'rectangle':
+                const width = e.x - s.x;
+                const height = e.y - s.y;
+                page.drawRectangle({
+                  x: s.x,
+                  y: s.y,
+                  width,
+                  height,
+                  borderColor: rgb(col.r, col.g, col.b),
+                  borderWidth: thickness,
+                });
+                break;
+              case 'square':
+                const side = Math.min(Math.abs(e.x - s.x), Math.abs(e.y - s.y));
+                const dirX = e.x > s.x ? 1 : -1;
+                const dirY = e.y > s.y ? 1 : -1;
+                page.drawRectangle({
+                  x: s.x,
+                  y: s.y,
+                  width: side * dirX,
+                  height: side * dirY,
+                  borderColor: rgb(col.r, col.g, col.b),
+                  borderWidth: thickness,
+                });
+                break;
+              case 'circle':
+                const radius = Math.sqrt((e.x - s.x) ** 2 + (e.y - s.y) ** 2);
+                page.drawCircle({
+                  x: s.x,
+                  y: s.y,
+                  size: radius,
+                  borderColor: rgb(col.r, col.g, col.b),
+                  borderWidth: thickness,
+                });
+                break;
             }
           }
 
