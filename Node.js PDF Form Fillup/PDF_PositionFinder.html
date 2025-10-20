@@ -5,78 +5,198 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PDF Coordinate Finder</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         body {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            background-color: #f0f0f0;
+            font-family: 'Inter', sans-serif;
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
         }
         #pdf-viewer-container {
             position: relative;
-            border: 1px solid #ccc;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
         }
         #pdf-canvas {
             display: block;
+            border-radius: 15px;
         }
         #coordinates-display {
             position: absolute;
-            bottom: 10px;
-            left: 10px;
-            background-color: rgba(0, 0, 0, 0.7);
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
             color: white;
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-family: monospace;
+            padding: 10px 15px;
+            border-radius: 25px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        .sidebar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        .input-field {
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            transition: border-color 0.3s ease;
+        }
+        .input-field:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .coord-item {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            transition: background-color 0.3s ease;
+        }
+        .coord-item:hover {
+            background: #e2e8f0;
         }
     </style>
 </head>
-<body class="bg-gray-100 p-4">
-    <h1 class="text-3xl font-bold mb-6">PDF Coordinate Finder</h1>
+<body class="text-gray-800">
+    <div class="min-h-screen p-6">
+        <div class="max-w-7xl mx-auto">
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <h1 class="text-4xl font-bold text-white mb-2 flex items-center justify-center">
+                    <i class="fas fa-crosshairs mr-3"></i>
+                    PDF Coordinate Finder
+                </h1>
+                <p class="text-white/80">Precisely locate and save coordinates on your PDF documents</p>
+            </div>
 
-    <div class="mb-4">
-        <input type="file" id="pdf-upload" accept=".pdf" class="p-2 border border-gray-300 rounded-md">
-    </div>
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                <!-- Main Viewer -->
+                <div class="lg:col-span-3">
+                    <div class="card p-6">
+                        <!-- File Upload -->
+                        <div class="mb-6">
+                            <label for="pdf-upload" class="block text-lg font-semibold mb-3 text-gray-700">
+                                <i class="fas fa-upload mr-2"></i>Upload PDF
+                            </label>
+                            <div class="relative">
+                                <input type="file" id="pdf-upload" accept=".pdf" class="hidden">
+                                <label for="pdf-upload" class="flex items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-blue-400 transition-colors">
+                                    <div class="text-center">
+                                        <i class="fas fa-file-pdf text-4xl text-gray-400 mb-2"></i>
+                                        <p class="text-gray-600">Click to upload or drag and drop</p>
+                                        <p class="text-sm text-gray-500">PDF files only</p>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
 
-    <div class="mb-4 flex items-center space-x-4">
-        <button id="prev-page" class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 disabled:opacity-50" disabled>Previous Page</button>
-        <span id="page-info" class="text-lg font-semibold">Page: 0 / 0</span>
-        <button id="next-page" class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 disabled:opacity-50" disabled>Next Page</button>
-        <div class="flex items-center space-x-2">
-            <label for="page-num" class="font-medium">Go to page:</label>
-            <input type="number" id="page-num" min="1" class="w-16 p-1 border border-gray-300 rounded-md">
-            <button id="go-to-page" class="bg-blue-500 text-white px-3 py-1 rounded-md hover:bg-blue-600">Go</button>
+                        <!-- Page Navigation -->
+                        <div class="mb-6 flex items-center justify-between bg-gray-50 rounded-xl p-4">
+                            <button id="prev-page" class="btn-primary text-white px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                                <i class="fas fa-chevron-left mr-2"></i>Previous
+                            </button>
+                            <div class="flex items-center space-x-4">
+                                <span id="page-info" class="text-lg font-semibold text-gray-700">Page: 0 / 0</span>
+                                <div class="flex items-center space-x-2">
+                                    <label for="page-num" class="text-sm font-medium text-gray-600">Go to:</label>
+                                    <input type="number" id="page-num" min="1" class="input-field w-16 px-2 py-1 text-center">
+                                    <button id="go-to-page" class="btn-primary text-white px-3 py-1 rounded-lg text-sm">
+                                        <i class="fas fa-arrow-right"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <button id="next-page" class="btn-primary text-white px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                                Next<i class="fas fa-chevron-right ml-2"></i>
+                            </button>
+                        </div>
+
+                        <!-- PDF Viewer -->
+                        <div id="pdf-viewer-container" class="relative">
+                            <canvas id="pdf-canvas"></canvas>
+                            <div id="coordinates-display" class="hidden">
+                                <i class="fas fa-map-marker-alt mr-2"></i>
+                                X: 0.00, Y: 0.00
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sidebar -->
+                <div class="lg:col-span-1 space-y-6">
+                    <!-- Reference Point -->
+                    <div class="sidebar p-6">
+                        <h2 class="text-xl font-semibold mb-4 text-gray-700 flex items-center">
+                            <i class="fas fa-bullseye mr-2 text-blue-500"></i>
+                            Reference Point
+                        </h2>
+                        <div class="space-y-3">
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label for="ref-x" class="block text-sm font-medium text-gray-600 mb-1">Ref X</label>
+                                    <input type="number" id="ref-x" step="0.01" class="input-field w-full px-3 py-2">
+                                </div>
+                                <div>
+                                    <label for="ref-y" class="block text-sm font-medium text-gray-600 mb-1">Ref Y</label>
+                                    <input type="number" id="ref-y" step="0.01" class="input-field w-full px-3 py-2">
+                                </div>
+                            </div>
+                            <button id="set-reference" class="btn-primary text-white w-full py-2 rounded-lg font-medium">
+                                <i class="fas fa-crosshairs mr-2"></i>Set Reference Point
+                            </button>
+                            <p id="current-reference" class="text-sm text-gray-600 mt-2">
+                                <i class="fas fa-info-circle mr-1"></i>Current Reference: Not set
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Save & Export -->
+                    <div class="sidebar p-6">
+                        <h2 class="text-xl font-semibold mb-4 text-gray-700 flex items-center">
+                            <i class="fas fa-save mr-2 text-green-500"></i>
+                            Save Coordinates
+                        </h2>
+                        <div class="space-y-3">
+                            <input type="text" id="coord-name" placeholder="Coordinate name" class="input-field w-full px-3 py-2">
+                            <div class="flex space-x-2">
+                                <button id="save-coord" class="btn-primary text-white flex-1 py-2 rounded-lg font-medium">
+                                    <i class="fas fa-plus mr-2"></i>Save
+                                </button>
+                                <button id="export-json" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg transition-all duration-300 font-medium">
+                                    <i class="fas fa-download mr-2"></i>Export
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <h3 class="text-sm font-semibold text-gray-600 mb-2">Saved Coordinates</h3>
+                            <ul id="coord-list" class="space-y-1 max-h-40 overflow-y-auto"></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
-
-    <div id="pdf-viewer-container" class="relative">
-        <canvas id="pdf-canvas" class="border border-gray-400"></canvas>
-        <div id="coordinates-display" class="hidden">X: 0, Y: 0</div>
-    </div>
-
-    <div class="mt-4 p-4 bg-white rounded-md shadow-md">
-        <h2 class="text-xl font-semibold mb-2">Reference Point</h2>
-        <div class="flex items-center space-x-2 mb-2">
-            <label for="ref-x" class="font-medium">Ref X:</label>
-            <input type="number" id="ref-x" class="w-24 p-1 border border-gray-300 rounded-md">
-            <label for="ref-y" class="font-medium">Ref Y:</label>
-            <input type="number" id="ref-y" class="w-24 p-1 border border-gray-300 rounded-md">
-        </div>
-        <button id="set-reference" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">Set Reference Point</button>
-        <p id="current-reference" class="mt-2 text-sm text-gray-700">Current Reference: Not set</p>
-    </div>
-
-    <div class="mt-4 p-4 bg-white rounded-md shadow-md">
-        <h2 class="text-xl font-semibold mb-2">Save & Export Coordinates</h2>
-        <div class="flex items-center space-x-2 mb-2">
-            <input type="text" id="coord-name" placeholder="Name" class="w-32 p-1 border border-gray-300 rounded-md">
-            <button id="save-coord" class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600">Save Coordinate</button>
-            <button id="export-json" class="bg-purple-500 text-white px-4 py-2 rounded-md hover:bg-purple-600">Export JSON</button>
-        </div>
-        <ul id="coord-list" class="mt-2 text-sm text-gray-700"></ul>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
@@ -150,7 +270,7 @@
                         renderPage(pageNum);
                         coordinatesDisplay.classList.remove('hidden');
                         referencePoint = null; // Reset reference when new PDF is loaded
-                        currentReferenceDisplay.textContent = 'Current Reference: Not set';
+                        currentReferenceDisplay.innerHTML = '<i class="fas fa-info-circle mr-1"></i>Current Reference: Not set';
                         refXInput.value = '';
                         refYInput.value = '';
                         updatePageControls();
@@ -186,7 +306,7 @@
                 displayY = (viewport.height - canvasY) / scale;
             }
 
-            coordinatesDisplay.textContent = `X: ${displayX.toFixed(2)}, Y: ${displayY.toFixed(2)}`;
+            coordinatesDisplay.innerHTML = `<i class="fas fa-map-marker-alt mr-2"></i>X: ${displayX.toFixed(2)}, Y: ${displayY.toFixed(2)}`;
         });
 
         pdfCanvas.addEventListener('click', function(event) {
@@ -196,9 +316,44 @@
             const canvasX = event.clientX - rect.left;
             const canvasY = event.clientY - rect.top;
 
-            // Store the clicked canvas coordinates
+            // Store the clicked canvas coordinates for reference point setting
             refXInput.value = (canvasX / scale).toFixed(2);
             refYInput.value = ((viewport.height - canvasY) / scale).toFixed(2);
+
+            // Save last clicked position for coordinate saving
+            pdfCanvas.lastClicked = {
+                canvasX,
+                canvasY
+            };
+        });
+
+        setReferenceButton.addEventListener('click', function() {
+            if (!pdfDoc) {
+                alert('Please upload a PDF first.');
+                return;
+            }
+
+            const refX = parseFloat(refXInput.value);
+            const refY = parseFloat(refYInput.value);
+
+            if (isNaN(refX) || isNaN(refY)) {
+                alert('Please enter valid reference coordinates.');
+                return;
+            }
+
+            if (!pdfCanvas.lastClicked) {
+                alert('Please click on the PDF to set the reference point.');
+                return;
+            }
+
+            referencePoint = {
+                x: pdfCanvas.lastClicked.canvasX,
+                y: pdfCanvas.lastClicked.canvasY,
+                refX: refX,
+                refY: refY
+            };
+
+            currentReferenceDisplay.innerHTML = `<i class="fas fa-check-circle mr-1 text-green-500"></i>Current Reference: (${refX.toFixed(2)}, ${refY.toFixed(2)})`;
         });
 
         function updatePageControls() {
@@ -276,7 +431,10 @@
         });
 
         saveCoordBtn.addEventListener('click', function() {
-            if (!pdfDoc || !pdfCanvas.lastClicked) return;
+            if (!pdfDoc || !pdfCanvas.lastClicked) {
+                alert('Please upload a PDF and click on it to select a coordinate.');
+                return;
+            }
             const name = coordNameInput.value.trim();
             if (!name) {
                 alert('Please enter a name for the coordinate.');
@@ -304,15 +462,36 @@
 
             updateCoordList();
             coordNameInput.value = '';
+
+            // Visual feedback
+            saveCoordBtn.innerHTML = '<i class="fas fa-check mr-2"></i>Saved!';
+            setTimeout(() => {
+                saveCoordBtn.innerHTML = '<i class="fas fa-plus mr-2"></i>Save';
+            }, 1500);
         });
 
         function updateCoordList() {
             coordList.innerHTML = '';
-            savedCoordinates.forEach(coord => {
+            if (savedCoordinates.length === 0) {
+                coordList.innerHTML = '<li class="text-gray-500 text-sm italic">No coordinates saved yet</li>';
+                return;
+            }
+            savedCoordinates.forEach((coord, index) => {
                 const li = document.createElement('li');
-                li.textContent = `${coord.name}: X=${coord.x}, Y=${coord.y}`;
+                li.className = 'coord-item flex items-center justify-between';
+                li.innerHTML = `
+                    <span><strong>${coord.name}:</strong> (${coord.x}, ${coord.y})</span>
+                    <button class="text-red-500 hover:text-red-700 ml-2" onclick="removeCoord(${index})">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                `;
                 coordList.appendChild(li);
             });
+        }
+
+        function removeCoord(index) {
+            savedCoordinates.splice(index, 1);
+            updateCoordList();
         }
 
         exportJsonBtn.addEventListener('click', function() {
@@ -328,6 +507,9 @@
             dlAnchor.click();
             dlAnchor.remove();
         });
+
+        // Initialize
+        updateCoordList();
     </script>
 </body>
 </html>
