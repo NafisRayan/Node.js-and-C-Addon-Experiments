@@ -347,9 +347,9 @@
               </div>
             </div>
             <!-- PDF canvas -->
-            <canvas id="pdfCanvas" class="block max-w-full max-h-full bg-white shadow-lg"></canvas>
+            <canvas id="pdfCanvas" class="block max-w-full max-h-full bg-white shadow-lg" style="user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;"></canvas>
             <!-- Drawing canvas sits on top -->
-            <canvas id="drawCanvas" class="absolute top-0 left-0 pointer-events-auto cursor-crosshair"></canvas>
+            <canvas id="drawCanvas" class="absolute top-0 left-0 pointer-events-auto cursor-crosshair" style="user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;"></canvas>
             <!-- Empty state -->
             <div id="emptyState" class="absolute inset-0 flex items-center justify-center text-slate-500">
               <div class="text-center">
@@ -891,39 +891,65 @@
         return { x, y };
       }
 
-      function createTextInput(x, y) {
+      function createTextInput(x, y, existingText = '', editIndex = -1) {
         // Remove any existing text input
         const existingInput = document.querySelector('.text-input');
         if (existingInput) {
           existingInput.remove();
         }
         
+        // Get the canvas position
+        const rect = drawCanvas.getBoundingClientRect();
+        const canvasX = rect.left + (x * rect.width / drawCanvas.width);
+        const canvasY = rect.top + (y * rect.height / drawCanvas.height);
+        
         // Create input element
         const input = document.createElement('input');
         input.type = 'text';
-        input.className = 'text-input absolute bg-transparent border border-blue-500 text-black dark:text-white px-1 py-0.5 text-sm';
-        input.style.left = (drawCanvas.offsetLeft + x) + 'px';
-        input.style.top = (drawCanvas.offsetTop + y - 10) + 'px';
+        input.className = 'text-input';
+        input.style.position = 'fixed';
+        input.style.left = canvasX + 'px';
+        input.style.top = (canvasY - 10) + 'px';
         input.style.fontSize = drawState.size + 'px';
         input.style.color = drawState.color;
+        input.style.backgroundColor = 'white';
+        input.style.border = '2px solid #3b82f6';
+        input.style.borderRadius = '4px';
+        input.style.padding = '4px 8px';
         input.style.minWidth = '100px';
-        input.style.zIndex = '1000';
+        input.style.zIndex = '10000';
+        input.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+        input.value = existingText;
         
         // Add to document
         document.body.appendChild(input);
         input.focus();
+        input.select(); // Select existing text for easy editing
         
         // Handle input completion
         const finishTextInput = () => {
           const text = input.value.trim();
           if (text) {
-            drawState.texts.push({
-              x: x,
-              y: y,
-              text: text,
-              color: drawState.color,
-              size: drawState.size
-            });
+            if (editIndex >= 0) {
+              // Update existing text
+              drawState.texts[editIndex].text = text;
+              drawState.texts[editIndex].color = drawState.color;
+              drawState.texts[editIndex].size = drawState.size;
+            } else {
+              // Add new text
+              drawState.texts.push({
+                x: x,
+                y: y,
+                text: text,
+                color: drawState.color,
+                size: drawState.size
+              });
+            }
+            redraw();
+            saveCurrentPageAnnotations();
+          } else if (editIndex >= 0) {
+            // If empty and editing, remove the text
+            drawState.texts.splice(editIndex, 1);
             redraw();
             saveCurrentPageAnnotations();
           }
@@ -935,6 +961,7 @@
             e.preventDefault();
             finishTextInput();
           } else if (e.key === 'Escape') {
+            e.preventDefault();
             input.remove();
           }
         });
@@ -947,8 +974,33 @@
         const p = getCanvasPoint(e);
         
         if (drawState.tool === 'text') {
-          // Create text input at click position
-          createTextInput(p.x, p.y);
+          // Check if clicking on existing text to edit it
+          const ctx = drawCanvas.getContext('2d');
+          let clickedTextIndex = -1;
+          
+          for (let i = drawState.texts.length - 1; i >= 0; i--) {
+            const textItem = drawState.texts[i];
+            ctx.font = `${textItem.size}px Arial`;
+            const metrics = ctx.measureText(textItem.text);
+            const textWidth = metrics.width;
+            const textHeight = textItem.size; // approximate height
+            
+            // Check if click is within text bounds
+            if (p.x >= textItem.x && p.x <= textItem.x + textWidth &&
+                p.y >= textItem.y - textHeight && p.y <= textItem.y) {
+              clickedTextIndex = i;
+              break;
+            }
+          }
+          
+          if (clickedTextIndex >= 0) {
+            // Edit existing text
+            const textItem = drawState.texts[clickedTextIndex];
+            createTextInput(textItem.x, textItem.y, textItem.text, clickedTextIndex);
+          } else {
+            // Create new text input at click position
+            createTextInput(p.x, p.y);
+          }
           return;
         }
         
@@ -1063,6 +1115,7 @@
         // Set fill properties if enabled
         if (shape.fillEnabled) {
           ctx.fillStyle = shape.fillColor;
+          ctx.globalAlpha = 1.0; // Ensure full opacity
         }
         
         switch (shape.type) {
@@ -1078,6 +1131,7 @@
             const width = end.x - start.x;
             const height = end.y - start.y;
             if (shape.fillEnabled) {
+              // Draw fill first to cover underlying content
               ctx.fillRect(start.x, start.y, width, height);
             }
             ctx.strokeRect(start.x, start.y, width, height);
@@ -1087,6 +1141,7 @@
             const dirX = end.x > start.x ? 1 : -1;
             const dirY = end.y > start.y ? 1 : -1;
             if (shape.fillEnabled) {
+              // Draw fill first to cover underlying content
               ctx.fillRect(start.x, start.y, side * dirX, side * dirY);
             }
             ctx.strokeRect(start.x, start.y, side * dirX, side * dirY);
@@ -1096,11 +1151,13 @@
             ctx.beginPath();
             ctx.arc(start.x, start.y, radius, 0, 2 * Math.PI);
             if (shape.fillEnabled) {
+              // Draw fill first to cover underlying content
               ctx.fill();
             }
             ctx.stroke();
             break;
         }
+        ctx.globalAlpha = 1.0; // Reset alpha
       }
 
       undoBtn.addEventListener('click', () => {
