@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF ⟷ Image Converter</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Inter', sans-serif;
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            transition: all 0.3s ease;
+        }
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        .tab-button {
+            transition: all 0.3s ease;
+        }
+        .tab-button.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: translateY(-2px);
+        }
+        .upload-zone {
+            border: 3px dashed #cbd5e0;
+            transition: all 0.3s ease;
+        }
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+        }
+        .preview-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        .preview-item {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        .preview-item:hover {
+            transform: scale(1.05);
+        }
+        .preview-item img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+        .progress-bar {
+            transition: width 0.3s ease;
+        }
+        .loader {
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+    <div class="min-h-screen p-6">
+        <div class="max-w-6xl mx-auto">
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <h1 class="text-5xl font-bold text-white mb-3 flex items-center justify-center">
+                    <i class="fas fa-exchange-alt mr-4"></i>
+                    PDF ⟷ Image Converter
+                </h1>
+                <p class="text-white/90 text-lg">Convert PDF to Images or Images to Searchable PDF with OCR</p>
+            </div>
+
+            <!-- Tabs -->
+            <div class="glass p-2 mb-6 flex gap-2">
+                <button id="tab-pdf-to-image" class="tab-button active flex-1 py-3 px-6 rounded-xl font-semibold">
+                    <i class="fas fa-file-pdf mr-2"></i>PDF to Images
+                </button>
+                <button id="tab-image-to-pdf" class="tab-button flex-1 py-3 px-6 rounded-xl font-semibold">
+                    <i class="fas fa-images mr-2"></i>Images to PDF
+                </button>
+            </div>
+
+            <!-- PDF to Image Section -->
+            <div id="section-pdf-to-image" class="tab-content">
+                <div class="glass p-8 mb-6">
+                    <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+                        <i class="fas fa-file-pdf mr-3 text-red-500"></i>
+                        Convert PDF to Images
+                    </h2>
+                    
+                    <!-- Upload Zone -->
+                    <div id="pdf-upload-zone" class="upload-zone rounded-xl p-12 text-center cursor-pointer mb-6">
+                        <i class="fas fa-cloud-upload-alt text-6xl text-gray-400 mb-4"></i>
+                        <p class="text-xl font-semibold text-gray-700 mb-2">Drop PDF file here or click to upload</p>
+                        <p class="text-sm text-gray-500">Supports PDF files up to 50MB</p>
+                        <input type="file" id="pdf-file-input" accept=".pdf" class="hidden">
+                    </div>
+
+                    <!-- Settings -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Output Format</label>
+                            <select id="pdf-image-format" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none">
+                                <option value="png">PNG</option>
+                                <option value="jpg">JPG</option>
+                                <option value="jpeg">JPEG</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Quality</label>
+                            <select id="pdf-quality" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none">
+                                <option value="1">Low (Faster)</option>
+                                <option value="2" selected>Medium</option>
+                                <option value="3">High (Better)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">DPI</label>
+                            <input type="number" id="pdf-dpi" value="150" min="72" max="300" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none">
+                        </div>
+                    </div>
+
+                    <!-- Convert Button -->
+                    <button id="convert-pdf-btn" class="btn-primary w-full py-4 rounded-xl text-white font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        <i class="fas fa-magic mr-2"></i>Convert to Images
+                    </button>
+
+                    <!-- Progress -->
+                    <div id="pdf-progress-container" class="hidden mt-6">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-semibold text-gray-700">Converting...</span>
+                            <span id="pdf-progress-text" class="text-sm font-semibold text-purple-600">0%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                            <div id="pdf-progress-bar" class="progress-bar bg-gradient-to-r from-purple-500 to-pink-500 h-3 rounded-full" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Preview Section -->
+                <div id="pdf-preview-section" class="glass p-8 hidden fade-in">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-2xl font-bold text-gray-800">
+                            <i class="fas fa-images mr-3 text-purple-500"></i>
+                            Generated Images (<span id="pdf-image-count">0</span>)
+                        </h3>
+                        <button id="download-all-images-btn" class="btn-secondary px-6 py-3 rounded-xl text-white font-semibold">
+                            <i class="fas fa-download mr-2"></i>Download All
+                        </button>
+                    </div>
+                    <div id="pdf-preview-container" class="preview-container"></div>
+                </div>
+            </div>
+
+            <!-- Image to PDF Section -->
+            <div id="section-image-to-pdf" class="tab-content hidden">
+                <div class="glass p-8 mb-6">
+                    <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+                        <i class="fas fa-images mr-3 text-blue-500"></i>
+                        Convert Images to Searchable PDF
+                    </h2>
+                    
+                    <!-- Upload Zone -->
+                    <div id="image-upload-zone" class="upload-zone rounded-xl p-12 text-center cursor-pointer mb-6">
+                        <i class="fas fa-cloud-upload-alt text-6xl text-gray-400 mb-4"></i>
+                        <p class="text-xl font-semibold text-gray-700 mb-2">Drop images here or click to upload</p>
+                        <p class="text-sm text-gray-500">Supports JPG, PNG, JPEG • Multiple files allowed</p>
+                        <input type="file" id="image-file-input" accept="image/*" multiple class="hidden">
+                    </div>
+
+                    <!-- Settings -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div>
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" id="ocr-enabled" checked class="w-5 h-5 text-purple-600 rounded">
+                                <span class="font-semibold text-gray-700">Enable OCR (Text Recognition)</span>
+                            </label>
+                            <p class="text-xs text-gray-500 mt-1 ml-7">Make PDF searchable and text-selectable</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">OCR Language</label>
+                            <select id="ocr-language" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none">
+                                <option value="eng">English</option>
+                                <option value="spa">Spanish</option>
+                                <option value="fra">French</option>
+                                <option value="deu">German</option>
+                                <option value="chi_sim">Chinese (Simplified)</option>
+                                <option value="jpn">Japanese</option>
+                                <option value="kor">Korean</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Convert Button -->
+                    <button id="convert-image-btn" class="btn-primary w-full py-4 rounded-xl text-white font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        <i class="fas fa-magic mr-2"></i>Convert to PDF
+                    </button>
+
+                    <!-- Progress -->
+                    <div id="image-progress-container" class="hidden mt-6">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-semibold text-gray-700">Processing...</span>
+                            <span id="image-progress-text" class="text-sm font-semibold text-purple-600">0%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                            <div id="image-progress-bar" class="progress-bar bg-gradient-to-r from-purple-500 to-pink-500 h-3 rounded-full" style="width: 0%"></div>
+                        </div>
+                        <div id="ocr-status" class="mt-3 text-sm text-gray-600 flex items-center">
+                            <div class="loader mr-3"></div>
+                            <span>Initializing OCR engine...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Preview Section -->
+                <div id="image-preview-section" class="glass p-8 hidden fade-in">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-2xl font-bold text-gray-800">
+                            <i class="fas fa-images mr-3 text-blue-500"></i>
+                            Selected Images (<span id="selected-image-count">0</span>)
+                        </h3>
+                        <button id="clear-images-btn" class="px-6 py-3 rounded-xl bg-red-500 text-white font-semibold hover:bg-red-600 transition">
+                            <i class="fas fa-trash mr-2"></i>Clear All
+                        </button>
+                    </div>
+                    <div id="image-preview-container" class="preview-container"></div>
+                </div>
+
+                <!-- Download Section -->
+                <div id="pdf-download-section" class="glass p-8 hidden fade-in mt-6">
+                    <div class="text-center">
+                        <i class="fas fa-check-circle text-6xl text-green-500 mb-4"></i>
+                        <h3 class="text-2xl font-bold text-gray-800 mb-4">PDF Generated Successfully!</h3>
+                        <button id="download-pdf-btn" class="btn-secondary px-8 py-4 rounded-xl text-white font-bold text-lg">
+                            <i class="fas fa-download mr-2"></i>Download PDF
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PDF.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+    
+    <!-- Tesseract.js for OCR -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.1.1/dist/tesseract.min.js"></script>
+    
+    <!-- jsPDF for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <script>
+        // Initialize PDF.js
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        // Tab switching
+        const tabs = {
+            'tab-pdf-to-image': 'section-pdf-to-image',
+            'tab-image-to-pdf': 'section-image-to-pdf'
+        };
+
+        Object.keys(tabs).forEach(tabId => {
+            document.getElementById(tabId).addEventListener('click', function() {
+                // Remove active class from all tabs
+                document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                // Add active class to clicked tab
+                this.classList.add('active');
+                
+                // Hide all sections
+                document.querySelectorAll('.tab-content').forEach(section => section.classList.add('hidden'));
+                // Show selected section
+                document.getElementById(tabs[tabId]).classList.remove('hidden');
+            });
+        });
+
+        // ==================== PDF TO IMAGE ====================
+        let pdfDoc = null;
+        let pdfImages = [];
+
+        const pdfUploadZone = document.getElementById('pdf-upload-zone');
+        const pdfFileInput = document.getElementById('pdf-file-input');
+        const convertPdfBtn = document.getElementById('convert-pdf-btn');
+        const pdfProgressContainer = document.getElementById('pdf-progress-container');
+        const pdfProgressBar = document.getElementById('pdf-progress-bar');
+        const pdfProgressText = document.getElementById('pdf-progress-text');
+        const pdfPreviewSection = document.getElementById('pdf-preview-section');
+        const pdfPreviewContainer = document.getElementById('pdf-preview-container');
+        const pdfImageCount = document.getElementById('pdf-image-count');
+        const downloadAllImagesBtn = document.getElementById('download-all-images-btn');
+
+        // Drag and drop
+        pdfUploadZone.addEventListener('click', () => pdfFileInput.click());
+        pdfUploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            pdfUploadZone.classList.add('dragover');
+        });
+        pdfUploadZone.addEventListener('dragleave', () => {
+            pdfUploadZone.classList.remove('dragover');
+        });
+        pdfUploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            pdfUploadZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                pdfFileInput.files = e.dataTransfer.files;
+                handlePdfUpload(e.dataTransfer.files[0]);
+            }
+        });
+
+        pdfFileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handlePdfUpload(e.target.files[0]);
+            }
+        });
+
+        function handlePdfUpload(file) {
+            if (file.type !== 'application/pdf') {
+                alert('Please upload a PDF file');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const typedarray = new Uint8Array(e.target.result);
+                pdfDoc = await pdfjsLib.getDocument(typedarray).promise;
+                convertPdfBtn.disabled = false;
+                pdfUploadZone.innerHTML = `
+                    <i class="fas fa-file-pdf text-6xl text-red-500 mb-4"></i>
+                    <p class="text-xl font-semibold text-gray-700 mb-2">${file.name}</p>
+                    <p class="text-sm text-gray-500">${pdfDoc.numPages} pages • Ready to convert</p>
+                `;
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        convertPdfBtn.addEventListener('click', async () => {
+            if (!pdfDoc) return;
+
+            convertPdfBtn.disabled = true;
+            pdfProgressContainer.classList.remove('hidden');
+            pdfPreviewSection.classList.add('hidden');
+            pdfImages = [];
+
+            const format = document.getElementById('pdf-image-format').value;
+            const quality = parseInt(document.getElementById('pdf-quality').value);
+            const dpi = parseInt(document.getElementById('pdf-dpi').value);
+            const scale = dpi / 72;
+
+            for (let i = 1; i <= pdfDoc.numPages; i++) {
+                const page = await pdfDoc.getPage(i);
+                const viewport = page.getViewport({ scale: scale });
+                
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+
+                await page.render({
+                    canvasContext: context,
+                    viewport: viewport
+                }).promise;
+
+                const imageData = canvas.toDataURL(`image/${format}`, quality / 3);
+                pdfImages.push({
+                    data: imageData,
+                    name: `page_${i}.${format}`
+                });
+
+                const progress = (i / pdfDoc.numPages) * 100;
+                pdfProgressBar.style.width = `${progress}%`;
+                pdfProgressText.textContent = `${Math.round(progress)}%`;
+            }
+
+            pdfProgressContainer.classList.add('hidden');
+            convertPdfBtn.disabled = false;
+            displayPdfImages();
+        });
+
+        function displayPdfImages() {
+            pdfPreviewContainer.innerHTML = '';
+            pdfImageCount.textContent = pdfImages.length;
+            
+            pdfImages.forEach((img, index) => {
+                const div = document.createElement('div');
+                div.className = 'preview-item';
+                div.innerHTML = `
+                    <img src="${img.data}" alt="Page ${index + 1}">
+                    <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
+                        <p class="text-white text-sm font-semibold">Page ${index + 1}</p>
+                        <button onclick="downloadImage(${index})" class="mt-1 w-full bg-white text-purple-600 py-1 px-2 rounded text-xs font-semibold hover:bg-gray-100">
+                            <i class="fas fa-download mr-1"></i>Download
+                        </button>
+                    </div>
+                `;
+                pdfPreviewContainer.appendChild(div);
+            });
+
+            pdfPreviewSection.classList.remove('hidden');
+        }
+
+        function downloadImage(index) {
+            const link = document.createElement('a');
+            link.href = pdfImages[index].data;
+            link.download = pdfImages[index].name;
+            link.click();
+        }
+
+        downloadAllImagesBtn.addEventListener('click', () => {
+            pdfImages.forEach((img, index) => {
+                setTimeout(() => downloadImage(index), index * 100);
+            });
+        });
+
+        // ==================== IMAGE TO PDF ====================
+        let selectedImages = [];
+        let generatedPdfBlob = null;
+
+        const imageUploadZone = document.getElementById('image-upload-zone');
+        const imageFileInput = document.getElementById('image-file-input');
+        const convertImageBtn = document.getElementById('convert-image-btn');
+        const imageProgressContainer = document.getElementById('image-progress-container');
+        const imageProgressBar = document.getElementById('image-progress-bar');
+        const imageProgressText = document.getElementById('image-progress-text');
+        const ocrStatus = document.getElementById('ocr-status');
+        const imagePreviewSection = document.getElementById('image-preview-section');
+        const imagePreviewContainer = document.getElementById('image-preview-container');
+        const selectedImageCount = document.getElementById('selected-image-count');
+        const clearImagesBtn = document.getElementById('clear-images-btn');
+        const pdfDownloadSection = document.getElementById('pdf-download-section');
+        const downloadPdfBtn = document.getElementById('download-pdf-btn');
+
+        // Drag and drop for images
+        imageUploadZone.addEventListener('click', () => imageFileInput.click());
+        imageUploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            imageUploadZone.classList.add('dragover');
+        });
+        imageUploadZone.addEventListener('dragleave', () => {
+            imageUploadZone.classList.remove('dragover');
+        });
+        imageUploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            imageUploadZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                imageFileInput.files = e.dataTransfer.files;
+                handleImageUpload(Array.from(e.dataTransfer.files));
+            }
+        });
+
+        imageFileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleImageUpload(Array.from(e.target.files));
+            }
+        });
+
+        function handleImageUpload(files) {
+            const imageFiles = files.filter(file => file.type.startsWith('image/'));
+            
+            if (imageFiles.length === 0) {
+                alert('Please upload image files');
+                return;
+            }
+
+            selectedImages = [];
+            imageFiles.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    selectedImages.push({
+                        name: file.name,
+                        data: e.target.result
+                    });
+                    
+                    if (selectedImages.length === imageFiles.length) {
+                        displaySelectedImages();
+                        convertImageBtn.disabled = false;
+                    }
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function displaySelectedImages() {
+            imagePreviewContainer.innerHTML = '';
+            selectedImageCount.textContent = selectedImages.length;
+            
+            selectedImages.forEach((img, index) => {
+                const div = document.createElement('div');
+                div.className = 'preview-item';
+                div.innerHTML = `
+                    <img src="${img.data}" alt="${img.name}">
+                    <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
+                        <p class="text-white text-sm font-semibold truncate">${img.name}</p>
+                        <button onclick="removeImage(${index})" class="mt-1 w-full bg-red-500 text-white py-1 px-2 rounded text-xs font-semibold hover:bg-red-600">
+                            <i class="fas fa-times mr-1"></i>Remove
+                        </button>
+                    </div>
+                `;
+                imagePreviewContainer.appendChild(div);
+            });
+
+            imagePreviewSection.classList.remove('hidden');
+            pdfDownloadSection.classList.add('hidden');
+        }
+
+        function removeImage(index) {
+            selectedImages.splice(index, 1);
+            if (selectedImages.length === 0) {
+                imagePreviewSection.classList.add('hidden');
+                convertImageBtn.disabled = true;
+            } else {
+                displaySelectedImages();
+            }
+        }
+
+        clearImagesBtn.addEventListener('click', () => {
+            selectedImages = [];
+            imagePreviewSection.classList.add('hidden');
+            convertImageBtn.disabled = true;
+            imageFileInput.value = '';
+        });
+
+        convertImageBtn.addEventListener('click', async () => {
+            if (selectedImages.length === 0) return;
+
+            convertImageBtn.disabled = true;
+            imageProgressContainer.classList.remove('hidden');
+            pdfDownloadSection.classList.add('hidden');
+
+            const ocrEnabled = document.getElementById('ocr-enabled').checked;
+            const ocrLanguage = document.getElementById('ocr-language').value;
+
+            try {
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF();
+                let isFirstPage = true;
+
+                for (let i = 0; i < selectedImages.length; i++) {
+                    const img = selectedImages[i];
+                    
+                    if (!isFirstPage) {
+                        pdf.addPage();
+                    }
+                    isFirstPage = false;
+
+                    // Get image dimensions
+                    const imgElement = await loadImage(img.data);
+                    const imgWidth = imgElement.width;
+                    const imgHeight = imgElement.height;
+                    
+                    // Calculate PDF dimensions (A4 size)
+                    const pdfWidth = pdf.internal.pageSize.getWidth();
+                    const pdfHeight = pdf.internal.pageSize.getHeight();
+                    
+                    // Scale image to fit PDF page
+                    const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+                    const scaledWidth = imgWidth * ratio;
+                    const scaledHeight = imgHeight * ratio;
+                    const x = (pdfWidth - scaledWidth) / 2;
+                    const y = (pdfHeight - scaledHeight) / 2;
+
+                    pdf.addImage(img.data, 'JPEG', x, y, scaledWidth, scaledHeight);
+
+                    // OCR Processing
+                    if (ocrEnabled) {
+                        ocrStatus.innerHTML = `
+                            <div class="loader mr-3"></div>
+                            <span>Processing image ${i + 1} of ${selectedImages.length} with OCR...</span>
+                        `;
+
+                        const result = await Tesseract.recognize(img.data, ocrLanguage, {
+                            logger: m => {
+                                if (m.status === 'recognizing text') {
+                                    const progress = Math.round(m.progress * 100);
+                                    imageProgressBar.style.width = `${(i / selectedImages.length) * 100 + progress / selectedImages.length}%`;
+                                    imageProgressText.textContent = `${Math.round((i / selectedImages.length) * 100 + progress / selectedImages.length)}%`;
+                                }
+                            }
+                        });
+
+                        // Add invisible text layer for searchability
+                        if (result.data.text) {
+                            pdf.setFontSize(8);
+                            pdf.setTextColor(255, 255, 255, 0);
+                            const textLines = result.data.text.split('\n');
+                            textLines.forEach((line, idx) => {
+                                pdf.text(line, 10, 10 + (idx * 5));
+                            });
+                        }
+                    } else {
+                        const progress = ((i + 1) / selectedImages.length) * 100;
+                        imageProgressBar.style.width = `${progress}%`;
+                        imageProgressText.textContent = `${Math.round(progress)}%`;
+                        ocrStatus.innerHTML = `<span>Processing image ${i + 1} of ${selectedImages.length}...</span>`;
+                    }
+                }
+
+                generatedPdfBlob = pdf.output('blob');
+                imageProgressContainer.classList.add('hidden');
+                pdfDownloadSection.classList.remove('hidden');
+                convertImageBtn.disabled = false;
+
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+                alert('Error generating PDF. Please try again.');
+                imageProgressContainer.classList.add('hidden');
+                convertImageBtn.disabled = false;
+            }
+        });
+
+        function loadImage(src) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = reject;
+                img.src = src;
+            });
+        }
+
+        downloadPdfBtn.addEventListener('click', () => {
+            if (generatedPdfBlob) {
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(generatedPdfBlob);
+                link.download = `converted_${Date.now()}.pdf`;
+                link.click();
+            }
+        });
+    </script>
+</body>
+</html>
