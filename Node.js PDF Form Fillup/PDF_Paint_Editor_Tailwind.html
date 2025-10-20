@@ -120,6 +120,38 @@
         </div>
       </div>
 
+      <!-- Page Navigation Bar -->
+      <div id="pageNavBar" class="bg-white rounded-lg shadow-md p-4 mb-6 hidden lg:flex items-center justify-center gap-4 border border-slate-200">
+        <button id="firstPageBtn" class="p-2 rounded-lg bg-slate-200 hover:bg-slate-300 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed" title="First Page">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path>
+          </svg>
+        </button>
+        <button id="prevPageBtn" class="p-2 rounded-lg bg-slate-200 hover:bg-slate-300 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed" title="Previous Page">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+          </svg>
+        </button>
+        
+        <div class="flex items-center gap-2">
+          <span class="text-sm text-slate-600">Page</span>
+          <input id="pageInput" type="number" min="1" class="w-16 px-2 py-1 border border-slate-300 rounded text-center text-sm" value="1">
+          <span class="text-sm text-slate-600">of</span>
+          <span id="totalPages" class="text-sm font-medium text-slate-800">1</span>
+        </div>
+        
+        <button id="nextPageBtn" class="p-2 rounded-lg bg-slate-200 hover:bg-slate-300 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed" title="Next Page">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+          </svg>
+        </button>
+        <button id="lastPageBtn" class="p-2 rounded-lg bg-slate-200 hover:bg-slate-300 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed" title="Last Page">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path>
+          </svg>
+        </button>
+      </div>
+
       <div class="flex flex-col lg:flex-row gap-6 mb-6 items-start">
         <!-- Controls Sidebar -->
         <div id="sidebar" class="bg-white p-5 rounded-lg shadow-xl lg:w-80 w-full lg:sticky lg:top-24 transition-all duration-300 border border-slate-200">
@@ -260,6 +292,7 @@
               <div><kbd class="px-1 py-0.5 bg-blue-100 rounded text-xs">P</kbd> Pen</div>
               <div><kbd class="px-1 py-0.5 bg-blue-100 rounded text-xs">E</kbd> Eraser</div>
               <div><kbd class="px-1 py-0.5 bg-blue-100 rounded text-xs">Ctrl+Z</kbd> Undo</div>
+              <div><kbd class="px-1 py-0.5 bg-blue-100 rounded text-xs">←/→</kbd> Navigate pages</div>
               <div><kbd class="px-1 py-0.5 bg-blue-100 rounded text-xs">Ctrl+-</kbd> Zoom Out</div>
             </div>
           </div>
@@ -308,7 +341,7 @@
             </div>
             <div>
               <strong class="block">Upload</strong>
-              Click "Upload PDF" to load your document.
+              Click "Upload PDF" to load your document (supports multi-page PDFs).
             </div>
           </div>
           <div class="flex items-start gap-3">
@@ -316,8 +349,8 @@
               <span class="text-xs font-bold text-blue-600">2</span>
             </div>
             <div>
-              <strong class="block">Choose Tool</strong>
-              Select a drawing tool from the sidebar.
+              <strong class="block">Navigate</strong>
+              Use page controls or arrow keys to navigate between pages.
             </div>
           </div>
           <div class="flex items-start gap-3">
@@ -325,8 +358,8 @@
               <span class="text-xs font-bold text-blue-600">3</span>
             </div>
             <div>
-              <strong class="block">Customize</strong>
-              Adjust color and brush size as needed.
+              <strong class="block">Draw</strong>
+              Select a tool and start drawing on any page.
             </div>
           </div>
           <div class="flex items-start gap-3">
@@ -335,13 +368,13 @@
             </div>
             <div>
               <strong class="block">Export</strong>
-              Save as PNG or export as vector PDF.
+              Save individual pages as PNG or export the entire document as PDF.
             </div>
           </div>
         </div>
         <div class="mt-4 p-3 bg-blue-100 rounded-lg">
           <p class="text-xs text-blue-700">
-            <strong>Note:</strong> This editor supports single-page PDFs. For multi-page documents, please load and edit pages individually. All annotations are preserved as vector graphics in PDF exports.
+            <strong>Multi-page Support:</strong> Annotations are preserved per page. Use the page navigation controls or keyboard shortcuts (←/→ arrows, Page Up/Down) to move between pages. Export PDF will include annotations from all pages.
           </p>
         </div>
       </div>
@@ -384,6 +417,7 @@
       const sidebarToggle = document.getElementById('sidebarToggle');
       const sidebar = document.getElementById('sidebar');
       const statusBar = document.getElementById('statusBar');
+      const pageNavBar = document.getElementById('pageNavBar');
       const currentTool = document.getElementById('currentTool');
       const currentColor = document.getElementById('currentColor');
       const currentSize = document.getElementById('currentSize');
@@ -391,6 +425,14 @@
       const zoomInBtn = document.getElementById('zoomInBtn');
       const zoomOutBtn = document.getElementById('zoomOutBtn');
       const fitToScreenBtn = document.getElementById('fitToScreenBtn');
+
+      // Page navigation elements
+      const firstPageBtn = document.getElementById('firstPageBtn');
+      const prevPageBtn = document.getElementById('prevPageBtn');
+      const nextPageBtn = document.getElementById('nextPageBtn');
+      const lastPageBtn = document.getElementById('lastPageBtn');
+      const pageInput = document.getElementById('pageInput');
+      const totalPages = document.getElementById('totalPages');
 
       // Helper functions for eraser on shapes
       function getStrokeBbox(stroke) {
@@ -437,12 +479,16 @@
       // State management
       let pdfDoc = null;
       let currentPage = 1;
+      let totalPagesCount = 1;
       let scale = 1.5;
       let originalPdfArrayBuffer = null;
       let isDarkMode = false;
       let sidebarCollapsed = false;
 
-      // Drawing state
+      // Drawing state per page - {pageNumber: {strokes: [], shapes: []}}
+      const pageAnnotations = {};
+
+      // Current drawing state (temporary, gets saved to pageAnnotations)
       const drawState = {
         drawing: false,
         tool: 'pen',
@@ -452,6 +498,41 @@
         shapes: [], // each shape: {type, start: {x,y}, end: {x,y}, color, size}
         currentShape: null, // for preview
       };
+
+      // Helper functions to save/load page annotations
+      function saveCurrentPageAnnotations() {
+        pageAnnotations[currentPage] = {
+          strokes: JSON.parse(JSON.stringify(drawState.strokes)),
+          shapes: JSON.parse(JSON.stringify(drawState.shapes))
+        };
+      }
+
+      function loadPageAnnotations(pageNum) {
+        const annotations = pageAnnotations[pageNum];
+        if (annotations) {
+          drawState.strokes = JSON.parse(JSON.stringify(annotations.strokes));
+          drawState.shapes = JSON.parse(JSON.stringify(annotations.shapes));
+        } else {
+          drawState.strokes = [];
+          drawState.shapes = [];
+        }
+      }
+
+      function updatePageNavigation() {
+        const hasMultiplePages = totalPagesCount > 1;
+        pageNavBar.classList.toggle('hidden', !hasMultiplePages);
+        
+        if (hasMultiplePages) {
+          totalPages.textContent = totalPagesCount;
+          pageInput.value = currentPage;
+          pageInput.max = totalPagesCount;
+          
+          firstPageBtn.disabled = currentPage === 1;
+          prevPageBtn.disabled = currentPage === 1;
+          nextPageBtn.disabled = currentPage === totalPagesCount;
+          lastPageBtn.disabled = currentPage === totalPagesCount;
+        }
+      }
 
       // UI State management
       function updateStatusBar() {
@@ -546,6 +627,49 @@
         if (pdfDoc) renderPage(currentPage);
       });
 
+      // Page navigation event listeners
+      firstPageBtn.addEventListener('click', () => navigateToPage(1));
+      prevPageBtn.addEventListener('click', () => navigateToPage(currentPage - 1));
+      nextPageBtn.addEventListener('click', () => navigateToPage(currentPage + 1));
+      lastPageBtn.addEventListener('click', () => navigateToPage(totalPagesCount));
+
+      pageInput.addEventListener('change', (e) => {
+        const pageNum = parseInt(e.target.value, 10);
+        if (pageNum >= 1 && pageNum <= totalPagesCount) {
+          navigateToPage(pageNum);
+        } else {
+          e.target.value = currentPage;
+        }
+      });
+
+      pageInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          const pageNum = parseInt(e.target.value, 10);
+          if (pageNum >= 1 && pageNum <= totalPagesCount) {
+            navigateToPage(pageNum);
+          } else {
+            e.target.value = currentPage;
+          }
+        }
+      });
+
+      function navigateToPage(pageNum) {
+        if (pageNum < 1 || pageNum > totalPagesCount || pageNum === currentPage) return;
+        
+        // Save current page annotations
+        saveCurrentPageAnnotations();
+        
+        // Navigate to new page
+        currentPage = pageNum;
+        renderPage(currentPage);
+        
+        // Load annotations for new page
+        loadPageAnnotations(currentPage);
+        redraw();
+        
+        updatePageNavigation();
+      }
+
       // Keyboard shortcuts
       document.addEventListener('keydown', (e) => {
         if (e.ctrlKey || e.metaKey) {
@@ -569,6 +693,22 @@
             case 'Delete':
               e.preventDefault();
               clearBtn.click();
+              break;
+            case 'ArrowLeft':
+              e.preventDefault();
+              navigateToPage(currentPage - 1);
+              break;
+            case 'ArrowRight':
+              e.preventDefault();
+              navigateToPage(currentPage + 1);
+              break;
+            case 'Home':
+              e.preventDefault();
+              navigateToPage(1);
+              break;
+            case 'End':
+              e.preventDefault();
+              navigateToPage(totalPagesCount);
               break;
           }
         } else {
@@ -597,6 +737,14 @@
             case 'h':
               setActiveTool('horizontal');
               break;
+            case 'arrowleft':
+            case 'pageup':
+              navigateToPage(currentPage - 1);
+              break;
+            case 'arrowright':
+            case 'pagedown':
+              navigateToPage(currentPage + 1);
+              break;
           }
         }
       });
@@ -613,8 +761,16 @@
           originalPdfArrayBuffer = arrayBuffer;
           const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
           pdfDoc = await loadingTask.promise;
+          totalPagesCount = pdfDoc.numPages;
           currentPage = 1;
+          
+          // Clear previous annotations
+          Object.keys(pageAnnotations).forEach(key => delete pageAnnotations[key]);
+          
           await renderPage(currentPage);
+          loadPageAnnotations(currentPage);
+          redraw();
+          updatePageNavigation();
         } catch (error) {
           console.error('Error loading PDF:', error);
           alert('Error loading PDF. Please try again.');
@@ -649,8 +805,6 @@
         drawCanvas.style.top = pdfCanvas.offsetTop + 'px';
         drawCanvas.style.left = pdfCanvas.offsetLeft + 'px';
 
-        // Reset drawing state
-        clearAllStrokes();
         updateStatusBar();
       }
 
@@ -708,6 +862,8 @@
           drawState.shapes = drawState.shapes.filter(shape => !bboxesOverlap(eraserBbox, getShapeBbox(shape)));
           redraw();
         }
+        // Save annotations after drawing
+        saveCurrentPageAnnotations();
       });
 
       function redraw() {
@@ -791,19 +947,21 @@
           drawState.strokes.pop();
         }
         redraw();
+        saveCurrentPageAnnotations();
       });
 
       clearBtn.addEventListener('click', () => {
-        if (confirm('Are you sure you want to clear all annotations? This action cannot be undone.')) {
-          clearAllStrokes();
+        if (confirm('Are you sure you want to clear all annotations on this page? This action cannot be undone.')) {
+          clearCurrentPageStrokes();
         }
       });
 
-      function clearAllStrokes() {
+      function clearCurrentPageStrokes() {
         drawState.strokes = [];
         drawState.shapes = [];
         const ctx = drawCanvas.getContext('2d');
         ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+        saveCurrentPageAnnotations();
       }
 
       savePngBtn.addEventListener('click', () => {
@@ -811,7 +969,7 @@
           alert('Please load a PDF first');
           return;
         }
-        // flatten pdfCanvas + drawCanvas to single PNG
+        // flatten pdfCanvas + drawCanvas to single PNG for current page
         const w = pdfCanvas.width, h = pdfCanvas.height;
         const out = document.createElement('canvas');
         out.width = w; out.height = h;
@@ -821,7 +979,7 @@
         const dataUrl = out.toDataURL('image/png');
         const a = document.createElement('a');
         a.href = dataUrl;
-        a.download = 'edited-page.png';
+        a.download = `edited-page-${currentPage}.png`;
         a.click();
       });
 
@@ -838,136 +996,148 @@
 
           const pdfDocLib = await PDFDocument.load(originalPdfArrayBuffer);
           const pages = pdfDocLib.getPages();
-          const page = pages[0];
 
-          // PDF page size in points
-          const { width: pdfWidth, height: pdfHeight } = page.getSize();
+          // Process each page
+          for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
+            const page = pages[pageIndex];
+            const pageNum = pageIndex + 1;
+            
+            // Load annotations for this page
+            const annotations = pageAnnotations[pageNum];
+            if (!annotations || (annotations.strokes.length === 0 && annotations.shapes.length === 0)) {
+              continue; // Skip pages with no annotations
+            }
 
-          // Canvas size in pixels
-          const canvasW = pdfCanvas.width;
-          const canvasH = pdfCanvas.height;
+            // PDF page size in points
+            const { width: pdfWidth, height: pdfHeight } = page.getSize();
 
-          // helper: convert canvas px -> pdf points (and flip Y)
-          const toPdfPoint = (pt) => {
-            return {
-              x: pt.x * (pdfWidth / canvasW),
-              y: pdfHeight - pt.y * (pdfHeight / canvasH),
+            // Canvas size in pixels (we need to render the page to get dimensions)
+            const pdfPage = await pdfDoc.getPage(pageNum);
+            const viewport = pdfPage.getViewport({ scale: 1.5 });
+            const canvasW = viewport.width;
+            const canvasH = viewport.height;
+
+            // helper: convert canvas px -> pdf points (and flip Y)
+            const toPdfPoint = (pt) => {
+              return {
+                x: pt.x * (pdfWidth / canvasW),
+                y: pdfHeight - pt.y * (pdfHeight / canvasH),
+              };
             };
-          };
 
-          function hexToRgbNormalized(hex) {
-            const h = hex.replace('#','');
-            const bigint = parseInt(h, 16);
-            const r = (bigint >> 16) & 255;
-            const g = (bigint >> 8) & 255;
-            const b = bigint & 255;
-            return { r: r/255, g: g/255, b: b/255 };
-          }
+            function hexToRgbNormalized(hex) {
+              const h = hex.replace('#','');
+              const bigint = parseInt(h, 16);
+              const r = (bigint >> 16) & 255;
+              const g = (bigint >> 8) & 255;
+              const b = bigint & 255;
+              return { r: r/255, g: g/255, b: b/255 };
+            }
 
-          // Separate pen strokes and eraser strokes
-          const penStrokes = drawState.strokes.filter(s => s.tool === 'pen');
-          const eraserStrokes = drawState.strokes.filter(s => s.tool === 'eraser');
+            // Separate pen strokes and eraser strokes
+            const penStrokes = annotations.strokes.filter(s => s.tool === 'pen');
+            const eraserStrokes = annotations.strokes.filter(s => s.tool === 'eraser');
 
-          // If there are eraser strokes, remove pen points near eraser points (approximate)
-          function isPointErased(pt) {
-            for (const er of eraserStrokes) {
-              for (const ept of er.points) {
-                const dx = pt.x - ept.x;
-                const dy = pt.y - ept.y;
-                const dist2 = dx*dx + dy*dy;
-                const r = er.size * 1.0; // eraser radius in px
-                if (dist2 <= r*r) return true;
+            // If there are eraser strokes, remove pen points near eraser points (approximate)
+            function isPointErased(pt) {
+              for (const er of eraserStrokes) {
+                for (const ept of er.points) {
+                  const dx = pt.x - ept.x;
+                  const dy = pt.y - ept.y;
+                  const dist2 = dx*dx + dy*dy;
+                  const r = er.size * 1.0; // eraser radius in px
+                  if (dist2 <= r*r) return true;
+                }
               }
+              return false;
             }
-            return false;
-          }
 
-          // Build cleaned stroke segments (split when points removed)
-          const cleanedSegments = [];
-          for (const stroke of penStrokes) {
-            const pts = stroke.points;
-            let segment = [];
-            for (let i=0;i<pts.length;i++) {
-              const p = pts[i];
-              if (!isPointErased(p)) {
-                segment.push(p);
-              } else {
-                if (segment.length >= 2) cleanedSegments.push({ points: segment.slice(), color: stroke.color, size: stroke.size });
-                segment = [];
+            // Build cleaned stroke segments (split when points removed)
+            const cleanedSegments = [];
+            for (const stroke of penStrokes) {
+              const pts = stroke.points;
+              let segment = [];
+              for (let i=0;i<pts.length;i++) {
+                const p = pts[i];
+                if (!isPointErased(p)) {
+                  segment.push(p);
+                } else {
+                  if (segment.length >= 2) cleanedSegments.push({ points: segment.slice(), color: stroke.color, size: stroke.size });
+                  segment = [];
+                }
               }
+              if (segment.length >= 2) cleanedSegments.push({ points: segment.slice(), color: stroke.color, size: stroke.size });
             }
-            if (segment.length >= 2) cleanedSegments.push({ points: segment.slice(), color: stroke.color, size: stroke.size });
-          }
 
-          // Draw each segment to the PDF as many small line segments
-          for (const seg of cleanedSegments) {
-            const col = hexToRgbNormalized(seg.color || '#000000');
-            const thickness = seg.size * (pdfWidth / canvasW);
-            for (let i=1;i<seg.points.length;i++) {
-              const a = toPdfPoint(seg.points[i-1]);
-              const b = toPdfPoint(seg.points[i]);
-              page.drawLine({
-                start: { x: a.x, y: a.y },
-                end: { x: b.x, y: b.y },
-                thickness,
-                color: rgb(col.r, col.g, col.b),
-                // round caps are not directly supported; thickness provides decent look
-              });
-            }
-          }
-
-          // Draw shapes
-          for (const shape of drawState.shapes) {
-            const col = hexToRgbNormalized(shape.color || '#000000');
-            const thickness = shape.size * (pdfWidth / canvasW);
-            const s = toPdfPoint(shape.start);
-            const e = toPdfPoint(shape.end);
-            switch (shape.type) {
-              case 'line':
-              case 'vertical':
-              case 'horizontal':
+            // Draw each segment to the PDF as many small line segments
+            for (const seg of cleanedSegments) {
+              const col = hexToRgbNormalized(seg.color || '#000000');
+              const thickness = seg.size * (pdfWidth / canvasW);
+              for (let i=1;i<seg.points.length;i++) {
+                const a = toPdfPoint(seg.points[i-1]);
+                const b = toPdfPoint(seg.points[i]);
                 page.drawLine({
-                  start: s,
-                  end: e,
+                  start: { x: a.x, y: a.y },
+                  end: { x: b.x, y: b.y },
                   thickness,
                   color: rgb(col.r, col.g, col.b),
                 });
-                break;
-              case 'rectangle':
-                const width = e.x - s.x;
-                const height = e.y - s.y;
-                page.drawRectangle({
-                  x: s.x,
-                  y: s.y,
-                  width,
-                  height,
-                  borderColor: rgb(col.r, col.g, col.b),
-                  borderWidth: thickness,
-                });
-                break;
-              case 'square':
-                const side = Math.min(Math.abs(e.x - s.x), Math.abs(e.y - s.y));
-                const dirX = e.x > s.x ? 1 : -1;
-                const dirY = e.y > s.y ? 1 : -1;
-                page.drawRectangle({
-                  x: s.x,
-                  y: s.y,
-                  width: side * dirX,
-                  height: side * dirY,
-                  borderColor: rgb(col.r, col.g, col.b),
-                  borderWidth: thickness,
-                });
-                break;
-              case 'circle':
-                const radius = Math.sqrt((e.x - s.x) ** 2 + (e.y - s.y) ** 2);
-                page.drawCircle({
-                  x: s.x,
-                  y: s.y,
-                  size: radius,
-                  borderColor: rgb(col.r, col.g, col.b),
-                  borderWidth: thickness,
-                });
-                break;
+              }
+            }
+
+            // Draw shapes
+            for (const shape of annotations.shapes) {
+              const col = hexToRgbNormalized(shape.color || '#000000');
+              const thickness = shape.size * (pdfWidth / canvasW);
+              const s = toPdfPoint(shape.start);
+              const e = toPdfPoint(shape.end);
+              switch (shape.type) {
+                case 'line':
+                case 'vertical':
+                case 'horizontal':
+                  page.drawLine({
+                    start: s,
+                    end: e,
+                    thickness,
+                    color: rgb(col.r, col.g, col.b),
+                  });
+                  break;
+                case 'rectangle':
+                  const width = e.x - s.x;
+                  const height = e.y - s.y;
+                  page.drawRectangle({
+                    x: s.x,
+                    y: s.y,
+                    width,
+                    height,
+                    borderColor: rgb(col.r, col.g, col.b),
+                    borderWidth: thickness,
+                  });
+                  break;
+                case 'square':
+                  const side = Math.min(Math.abs(e.x - s.x), Math.abs(e.y - s.y));
+                  const dirX = e.x > s.x ? 1 : -1;
+                  const dirY = e.y > s.y ? 1 : -1;
+                  page.drawRectangle({
+                    x: s.x,
+                    y: s.y,
+                    width: side * dirX,
+                    height: side * dirY,
+                    borderColor: rgb(col.r, col.g, col.b),
+                    borderWidth: thickness,
+                  });
+                  break;
+                case 'circle':
+                  const radius = Math.sqrt((e.x - s.x) ** 2 + (e.y - s.y) ** 2);
+                  page.drawCircle({
+                    x: s.x,
+                    y: s.y,
+                    size: radius,
+                    borderColor: rgb(col.r, col.g, col.b),
+                    borderWidth: thickness,
+                  });
+                  break;
+              }
             }
           }
 
@@ -976,19 +1146,18 @@
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = 'edited-page-vector.pdf';
+          a.download = 'edited-document.pdf';
           a.click();
           URL.revokeObjectURL(url);
         } catch (err) {
           console.error('Vector export failed, falling back to raster export', err);
-          // Fallback: raster export but use PNG (lossless) and higher resolution
+          // Fallback: raster export for current page only
           const { jsPDF } = window.jspdf;
-          const upscale = 2; // increase rendering resolution for better quality
+          const upscale = 2;
           const w = pdfCanvas.width * upscale, h = pdfCanvas.height * upscale;
           const out = document.createElement('canvas');
           out.width = w; out.height = h;
           const octx = out.getContext('2d');
-          // draw scaled
           octx.drawImage(pdfCanvas, 0, 0, w, h);
           octx.drawImage(drawCanvas, 0, 0, w, h);
           const imgData = out.toDataURL('image/png');
@@ -1003,6 +1172,7 @@
       // Initialize
       setActiveTool('pen');
       updateStatusBar();
+      updatePageNavigation();
 
       // Load dark mode preference
       if (localStorage.getItem('darkMode') === 'true') {
