@@ -30,6 +30,15 @@
     <style>
       .tool-btn svg { width: 20px; height: 20px; }
       .loading-spinner { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 2s linear infinite; }
+
+      /* Toggle switch styles */
+      input[type="checkbox"]:checked + div .dot {
+        transform: translateX(16px);
+        background-color: #3b82f6;
+      }
+      input[type="checkbox"]:checked + div .block {
+        background-color: #dbeafe;
+      }
       @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
       .zoom-btn { transition: all 0.2s ease; }
       .zoom-btn:hover { transform: scale(1.05); }
@@ -223,6 +232,12 @@
                 </svg>
                 <span class="tool-label text-xs font-medium">Horizontal</span>
               </button>
+              <button id="textBtn" class="tool-btn flex flex-col items-center justify-center p-3 rounded-lg bg-slate-200 text-slate-800 hover:bg-slate-300 transition-all duration-200 shadow-md group" title="Text Tool (T)">
+                <svg class="mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path>
+                </svg>
+                <span class="tool-label text-xs font-medium">Text</span>
+              </button>
             </div>
           </div>
 
@@ -231,9 +246,32 @@
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM21 5a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 004 4h4a2 2 0 002-2V5z"></path>
               </svg>
-              Color
+              Stroke Color
             </label>
-            <input id="colorInput" type="color" value="#ff0000" class="w-full h-12 p-1 border border-slate-300 rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md" />
+            <input id="colorInput" type="color" value="#ffffff" class="w-full h-12 p-1 border border-slate-300 rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md" />
+          </div>
+
+          <div class="mb-6">
+            <div class="flex items-center justify-between mb-3">
+              <label class="block text-sm font-semibold text-slate-700 flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                </svg>
+                Fill Options
+              </label>
+              <label class="flex items-center cursor-pointer">
+                <input id="fillEnabled" type="checkbox" class="sr-only" checked>
+                <div class="relative">
+                  <div class="block bg-slate-300 w-10 h-6 rounded-full transition-colors"></div>
+                  <div class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform"></div>
+                </div>
+                <span class="ml-3 text-sm font-medium text-slate-700">Enable Fill</span>
+              </label>
+            </div>
+            <div id="fillColorContainer" class="">
+              <label for="fillColorInput" class="block text-sm font-medium mb-2 text-slate-600">Fill Color</label>
+              <input id="fillColorInput" type="color" value="#ffffff" class="w-full h-12 p-1 border border-slate-300 rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md" />
+            </div>
           </div>
 
           <div class="mb-6">
@@ -374,7 +412,7 @@
         </div>
         <div class="mt-4 p-3 bg-blue-100 rounded-lg">
           <p class="text-xs text-blue-700">
-            <strong>Multi-page Support:</strong> Annotations are preserved per page. Use the page navigation controls or keyboard shortcuts (←/→ arrows, Page Up/Down) to move between pages. Export PDF will include annotations from all pages.
+            <strong>Shape Fill:</strong> Enable the "Fill" option to add solid colors to rectangles, squares, and circles. Choose different stroke and fill colors for enhanced visual effects.
           </p>
         </div>
       </div>
@@ -402,11 +440,15 @@
       const circleBtn = document.getElementById('circleBtn');
       const verticalBtn = document.getElementById('verticalBtn');
       const horizontalBtn = document.getElementById('horizontalBtn');
+      const textBtn = document.getElementById('textBtn');
 
       // Control elements
       const colorInput = document.getElementById('colorInput');
       const sizeInput = document.getElementById('sizeInput');
       const sizeValue = document.getElementById('sizeValue');
+      const fillEnabled = document.getElementById('fillEnabled');
+      const fillColorInput = document.getElementById('fillColorInput');
+      const fillColorContainer = document.getElementById('fillColorContainer');
       const undoBtn = document.getElementById('undoBtn');
       const clearBtn = document.getElementById('clearBtn');
       const savePngBtn = document.getElementById('savePngBtn');
@@ -480,12 +522,12 @@
       let pdfDoc = null;
       let currentPage = 1;
       let totalPagesCount = 1;
-      let scale = 1.5;
+      let scale = 1.0;
       let originalPdfArrayBuffer = null;
       let isDarkMode = false;
       let sidebarCollapsed = false;
 
-      // Drawing state per page - {pageNumber: {strokes: [], shapes: []}}
+      // Drawing state per page - {pageNumber: {strokes: [], shapes: [], texts: []}}
       const pageAnnotations = {};
 
       // Current drawing state (temporary, gets saved to pageAnnotations)
@@ -494,8 +536,11 @@
         tool: 'pen',
         color: colorInput.value,
         size: parseInt(sizeInput.value, 10),
+        fillEnabled: true,
+        fillColor: fillColorInput.value,
         strokes: [], // each stroke: {tool, color, size, points: [{x,y}]}
-        shapes: [], // each shape: {type, start: {x,y}, end: {x,y}, color, size}
+        shapes: [], // each shape: {type, start: {x,y}, end: {x,y}, color, size, fillEnabled, fillColor}
+        texts: [], // each text: {x, y, text, color, size, fontFamily, editing: boolean}
         currentShape: null, // for preview
       };
 
@@ -503,7 +548,8 @@
       function saveCurrentPageAnnotations() {
         pageAnnotations[currentPage] = {
           strokes: JSON.parse(JSON.stringify(drawState.strokes)),
-          shapes: JSON.parse(JSON.stringify(drawState.shapes))
+          shapes: JSON.parse(JSON.stringify(drawState.shapes)),
+          texts: JSON.parse(JSON.stringify(drawState.texts))
         };
       }
 
@@ -512,9 +558,11 @@
         if (annotations) {
           drawState.strokes = JSON.parse(JSON.stringify(annotations.strokes));
           drawState.shapes = JSON.parse(JSON.stringify(annotations.shapes));
+          drawState.texts = JSON.parse(JSON.stringify(annotations.texts || []));
         } else {
           drawState.strokes = [];
           drawState.shapes = [];
+          drawState.texts = [];
         }
       }
 
@@ -540,6 +588,13 @@
         currentColor.style.backgroundColor = drawState.color;
         currentSize.textContent = drawState.size;
         zoomLevel.textContent = Math.round(scale * 100) + '%';
+        
+        // Update fill color indicator if fill is enabled
+        if (drawState.fillEnabled) {
+          currentColor.style.border = `2px solid ${drawState.fillColor}`;
+        } else {
+          currentColor.style.border = 'none';
+        }
       }
 
       function updateCursor() {
@@ -572,7 +627,7 @@
       }
 
       function setActiveTool(tool) {
-        const buttons = [penBtn, eraserBtn, lineBtn, squareBtn, rectangleBtn, circleBtn, verticalBtn, horizontalBtn];
+        const buttons = [penBtn, eraserBtn, lineBtn, squareBtn, rectangleBtn, circleBtn, verticalBtn, horizontalBtn, textBtn];
         buttons.forEach(btn => {
           btn.classList.remove('bg-indigo-600', 'text-white', 'hover:bg-indigo-700');
           btn.classList.add('bg-slate-200', 'text-slate-800', 'hover:bg-slate-300');
@@ -599,6 +654,7 @@
       circleBtn.addEventListener('click', () => setActiveTool('circle'));
       verticalBtn.addEventListener('click', () => setActiveTool('vertical'));
       horizontalBtn.addEventListener('click', () => setActiveTool('horizontal'));
+      textBtn.addEventListener('click', () => setActiveTool('text'));
 
       colorInput.addEventListener('input', (e) => {
         drawState.color = e.target.value;
@@ -608,6 +664,17 @@
       sizeInput.addEventListener('input', (e) => {
         drawState.size = parseInt(e.target.value, 10);
         sizeValue.textContent = drawState.size;
+        updateStatusBar();
+      });
+
+      fillEnabled.addEventListener('change', (e) => {
+        drawState.fillEnabled = e.target.checked;
+        fillColorContainer.classList.toggle('hidden', !e.target.checked);
+        updateStatusBar();
+      });
+
+      fillColorInput.addEventListener('input', (e) => {
+        drawState.fillColor = e.target.value;
         updateStatusBar();
       });
 
@@ -622,9 +689,15 @@
         if (pdfDoc) renderPage(currentPage);
       });
 
-      fitToScreenBtn.addEventListener('click', () => {
-        scale = 1.5; // Reset to default
-        if (pdfDoc) renderPage(currentPage);
+      fitToScreenBtn.addEventListener('click', async () => {
+        if (!pdfDoc) return;
+        const page = await pdfDoc.getPage(currentPage);
+        const viewport = page.getViewport({ scale: 1.0 });
+        const containerRect = viewerContainer.getBoundingClientRect();
+        const scaleX = (containerRect.width - 40) / viewport.width; // 40px margin
+        const scaleY = (containerRect.height - 40) / viewport.height;
+        scale = Math.min(scaleX, scaleY, 3); // max 300% to prevent too large
+        renderPage(currentPage);
       });
 
       // Page navigation event listeners
@@ -737,6 +810,9 @@
             case 'h':
               setActiveTool('horizontal');
               break;
+            case 't':
+              setActiveTool('text');
+              break;
             case 'arrowleft':
             case 'pageup':
               navigateToPage(currentPage - 1);
@@ -815,16 +891,82 @@
         return { x, y };
       }
 
+      function createTextInput(x, y) {
+        // Remove any existing text input
+        const existingInput = document.querySelector('.text-input');
+        if (existingInput) {
+          existingInput.remove();
+        }
+        
+        // Create input element
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'text-input absolute bg-transparent border border-blue-500 text-black dark:text-white px-1 py-0.5 text-sm';
+        input.style.left = (drawCanvas.offsetLeft + x) + 'px';
+        input.style.top = (drawCanvas.offsetTop + y - 10) + 'px';
+        input.style.fontSize = drawState.size + 'px';
+        input.style.color = drawState.color;
+        input.style.minWidth = '100px';
+        input.style.zIndex = '1000';
+        
+        // Add to document
+        document.body.appendChild(input);
+        input.focus();
+        
+        // Handle input completion
+        const finishTextInput = () => {
+          const text = input.value.trim();
+          if (text) {
+            drawState.texts.push({
+              x: x,
+              y: y,
+              text: text,
+              color: drawState.color,
+              size: drawState.size
+            });
+            redraw();
+            saveCurrentPageAnnotations();
+          }
+          input.remove();
+        };
+        
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            finishTextInput();
+          } else if (e.key === 'Escape') {
+            input.remove();
+          }
+        });
+        
+        input.addEventListener('blur', finishTextInput);
+      }
+
       drawCanvas.addEventListener('pointerdown', (e) => {
         drawCanvas.setPointerCapture(e.pointerId);
-        drawState.drawing = true;
         const p = getCanvasPoint(e);
+        
+        if (drawState.tool === 'text') {
+          // Create text input at click position
+          createTextInput(p.x, p.y);
+          return;
+        }
+        
+        drawState.drawing = true;
         if (drawState.tool === 'pen' || drawState.tool === 'eraser') {
           const stroke = { tool: drawState.tool, color: drawState.color, size: drawState.size, points: [p] };
           drawState.strokes.push(stroke);
         } else {
           // shape tools
-          drawState.currentShape = { type: drawState.tool, start: p, end: p, color: drawState.color, size: drawState.size };
+          drawState.currentShape = { 
+            type: drawState.tool, 
+            start: p, 
+            end: p, 
+            color: drawState.color, 
+            size: drawState.size,
+            fillEnabled: drawState.fillEnabled,
+            fillColor: drawState.fillColor
+          };
         }
         redraw();
       });
@@ -903,6 +1045,12 @@
         if (drawState.currentShape) {
           drawShape(ctx, drawState.currentShape);
         }
+        // draw texts
+        for (const textItem of drawState.texts) {
+          ctx.font = `${textItem.size}px Arial`;
+          ctx.fillStyle = textItem.color;
+          ctx.fillText(textItem.text, textItem.x, textItem.y);
+        }
       }
 
       function drawShape(ctx, shape) {
@@ -911,6 +1059,12 @@
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         const { start, end } = shape;
+        
+        // Set fill properties if enabled
+        if (shape.fillEnabled) {
+          ctx.fillStyle = shape.fillColor;
+        }
+        
         switch (shape.type) {
           case 'line':
           case 'vertical':
@@ -923,25 +1077,36 @@
           case 'rectangle':
             const width = end.x - start.x;
             const height = end.y - start.y;
+            if (shape.fillEnabled) {
+              ctx.fillRect(start.x, start.y, width, height);
+            }
             ctx.strokeRect(start.x, start.y, width, height);
             break;
           case 'square':
             const side = Math.min(Math.abs(end.x - start.x), Math.abs(end.y - start.y));
             const dirX = end.x > start.x ? 1 : -1;
             const dirY = end.y > start.y ? 1 : -1;
+            if (shape.fillEnabled) {
+              ctx.fillRect(start.x, start.y, side * dirX, side * dirY);
+            }
             ctx.strokeRect(start.x, start.y, side * dirX, side * dirY);
             break;
           case 'circle':
             const radius = Math.sqrt((end.x - start.x) ** 2 + (end.y - start.y) ** 2);
             ctx.beginPath();
             ctx.arc(start.x, start.y, radius, 0, 2 * Math.PI);
+            if (shape.fillEnabled) {
+              ctx.fill();
+            }
             ctx.stroke();
             break;
         }
       }
 
       undoBtn.addEventListener('click', () => {
-        if (drawState.shapes.length > 0) {
+        if (drawState.texts.length > 0) {
+          drawState.texts.pop();
+        } else if (drawState.shapes.length > 0) {
           drawState.shapes.pop();
         } else if (drawState.strokes.length > 0) {
           drawState.strokes.pop();
@@ -959,6 +1124,7 @@
       function clearCurrentPageStrokes() {
         drawState.strokes = [];
         drawState.shapes = [];
+        drawState.texts = [];
         const ctx = drawCanvas.getContext('2d');
         ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
         saveCurrentPageAnnotations();
@@ -1004,7 +1170,7 @@
             
             // Load annotations for this page
             const annotations = pageAnnotations[pageNum];
-            if (!annotations || (annotations.strokes.length === 0 && annotations.shapes.length === 0)) {
+            if (!annotations || (annotations.strokes.length === 0 && annotations.shapes.length === 0 && annotations.texts.length === 0)) {
               continue; // Skip pages with no annotations
             }
 
@@ -1013,7 +1179,7 @@
 
             // Canvas size in pixels (we need to render the page to get dimensions)
             const pdfPage = await pdfDoc.getPage(pageNum);
-            const viewport = pdfPage.getViewport({ scale: 1.5 });
+            const viewport = pdfPage.getViewport({ scale: scale });
             const canvasW = viewport.width;
             const canvasH = viewport.height;
 
@@ -1105,39 +1271,90 @@
                 case 'rectangle':
                   const width = e.x - s.x;
                   const height = e.y - s.y;
-                  page.drawRectangle({
-                    x: s.x,
-                    y: s.y,
-                    width,
-                    height,
-                    borderColor: rgb(col.r, col.g, col.b),
-                    borderWidth: thickness,
-                  });
+                  if (shape.fillEnabled) {
+                    const fillCol = hexToRgbNormalized(shape.fillColor || '#ffffff');
+                    page.drawRectangle({
+                      x: s.x,
+                      y: s.y,
+                      width,
+                      height,
+                      borderColor: rgb(col.r, col.g, col.b),
+                      borderWidth: thickness,
+                      color: rgb(fillCol.r, fillCol.g, fillCol.b),
+                    });
+                  } else {
+                    page.drawRectangle({
+                      x: s.x,
+                      y: s.y,
+                      width,
+                      height,
+                      borderColor: rgb(col.r, col.g, col.b),
+                      borderWidth: thickness,
+                    });
+                  }
                   break;
                 case 'square':
                   const side = Math.min(Math.abs(e.x - s.x), Math.abs(e.y - s.y));
                   const dirX = e.x > s.x ? 1 : -1;
                   const dirY = e.y > s.y ? 1 : -1;
-                  page.drawRectangle({
-                    x: s.x,
-                    y: s.y,
-                    width: side * dirX,
-                    height: side * dirY,
-                    borderColor: rgb(col.r, col.g, col.b),
-                    borderWidth: thickness,
-                  });
+                  if (shape.fillEnabled) {
+                    const fillCol = hexToRgbNormalized(shape.fillColor || '#ffffff');
+                    page.drawRectangle({
+                      x: s.x,
+                      y: s.y,
+                      width: side * dirX,
+                      height: side * dirY,
+                      borderColor: rgb(col.r, col.g, col.b),
+                      borderWidth: thickness,
+                      color: rgb(fillCol.r, fillCol.g, fillCol.b),
+                    });
+                  } else {
+                    page.drawRectangle({
+                      x: s.x,
+                      y: s.y,
+                      width: side * dirX,
+                      height: side * dirY,
+                      borderColor: rgb(col.r, col.g, col.b),
+                      borderWidth: thickness,
+                    });
+                  }
                   break;
                 case 'circle':
                   const radius = Math.sqrt((e.x - s.x) ** 2 + (e.y - s.y) ** 2);
-                  page.drawCircle({
-                    x: s.x,
-                    y: s.y,
-                    size: radius,
-                    borderColor: rgb(col.r, col.g, col.b),
-                    borderWidth: thickness,
-                  });
+                  if (shape.fillEnabled) {
+                    const fillCol = hexToRgbNormalized(shape.fillColor || '#ffffff');
+                    page.drawCircle({
+                      x: s.x,
+                      y: s.y,
+                      size: radius,
+                      borderColor: rgb(col.r, col.g, col.b),
+                      borderWidth: thickness,
+                      color: rgb(fillCol.r, fillCol.g, fillCol.b),
+                    });
+                  } else {
+                    page.drawCircle({
+                      x: s.x,
+                      y: s.y,
+                      size: radius,
+                      borderColor: rgb(col.r, col.g, col.b),
+                      borderWidth: thickness,
+                    });
+                  }
                   break;
               }
+            }
+
+            // Draw texts
+            for (const textItem of annotations.texts || []) {
+              const col = hexToRgbNormalized(textItem.color || '#000000');
+              const fontSize = textItem.size * (pdfWidth / canvasW);
+              const pos = toPdfPoint({ x: textItem.x, y: textItem.y });
+              page.drawText(textItem.text, {
+                x: pos.x,
+                y: pos.y,
+                size: fontSize,
+                color: rgb(col.r, col.g, col.b),
+              });
             }
           }
 
