@@ -13,73 +13,384 @@
   <!-- pdf-lib for vector PDF editing (preserve original PDF text) -->
   <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
   </head>
-  <body class="bg-slate-50 min-h-screen text-slate-800">
-    <div class="max-w-6xl mx-auto p-6">
-      <h1 class="text-2xl font-semibold mb-4">PDF Paint Editor (Tailwind)</h1>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PDF Paint Editor - Professional PDF Annotation Tool</title>
+    <!-- Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- PDF.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <!-- jsPDF for export back to PDF (raster fallback) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- pdf-lib for vector PDF editing (preserve original PDF text) -->
+    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+    <style>
+      .tool-btn svg { width: 20px; height: 20px; }
+      .loading-spinner { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 2s linear infinite; }
+      @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+      .zoom-btn { transition: all 0.2s ease; }
+      .zoom-btn:hover { transform: scale(1.05); }
+      .sidebar-collapsed { width: 60px; }
+      .sidebar-collapsed .tool-grid { grid-template-columns: 1fr; }
+      .sidebar-collapsed .tool-label { display: none; }
+      .dark-mode { background-color: #1a202c; color: #e2e8f0; }
+      .dark-mode .bg-white { background-color: #2d3748; color: #e2e8f0; }
+      .dark-mode .text-slate-800 { color: #e2e8f0; }
+      .dark-mode .text-slate-600 { color: #a0aec0; }
+      .dark-mode .border-slate-200 { border-color: #4a5568; }
+      .dark-mode .bg-slate-50 { background-color: #1a202c; }
+      .dark-mode .bg-slate-200 { background-color: #4a5568; }
+      .dark-mode .hover\:bg-slate-300:hover { background-color: #2d3748; }
+      .dark-mode .bg-indigo-600 { background-color: #4c51bf; }
+      .dark-mode .hover\:bg-indigo-700:hover { background-color: #434190; }
+      .dark-mode .bg-yellow-400 { background-color: #d69e2e; }
+      .dark-mode .hover\:bg-yellow-500:hover { background-color: #b7791f; }
+      .dark-mode .bg-red-500 { background-color: #e53e3e; }
+      .dark-mode .hover\:bg-red-600:hover { background-color: #c53030; }
+      .dark-mode .bg-green-600 { background-color: #38a169; }
+      .dark-mode .hover\:bg-green-700:hover { background-color: #2f855a; }
+      .dark-mode .bg-blue-600 { background-color: #3182ce; }
+      .dark-mode .hover\:bg-blue-700:hover { background-color: #2c5282; }
+      .cursor-crosshair { cursor: crosshair; }
+      .cursor-eraser { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 20H7L3 16V4a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2z'/%3E%3Cpath d='M9.5 9.5l5 5'/%3E%3Cpath d='M14.5 9.5l-5 5'/%3E%3C/svg%3E"), auto; }
+    </style>
+  </head>
+  <body class="bg-slate-50 min-h-screen text-slate-800 transition-colors duration-300">
+    <!-- Header -->
+    <header class="bg-white shadow-lg border-b border-slate-200 px-4 py-3 sticky top-0 z-50">
+      <div class="max-w-7xl mx-auto flex items-center justify-between">
+        <h1 class="text-2xl font-bold text-slate-900 flex items-center gap-2">
+          <svg class="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+          </svg>
+          PDF Paint Editor
+        </h1>
+        <div class="flex items-center gap-4">
+          <button id="darkModeToggle" class="p-2 rounded-lg bg-slate-200 hover:bg-slate-300 transition-colors duration-200" title="Toggle Dark Mode">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+            </svg>
+          </button>
+          <button id="sidebarToggle" class="p-2 rounded-lg bg-slate-200 hover:bg-slate-300 transition-colors duration-200 lg:hidden" title="Toggle Sidebar">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
 
-      <div class="flex gap-4 mb-4 items-start">
-        <div class="bg-white p-4 rounded shadow w-72">
-          <label class="block text-sm font-medium mb-2">Open PDF</label>
-          <input id="fileInput" type="file" accept="application/pdf" class="block w-full text-sm text-slate-600" />
+    <div class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+      <!-- Status Bar -->
+      <div id="statusBar" class="bg-white rounded-lg shadow-md p-4 mb-6 hidden lg:flex items-center justify-between border border-slate-200">
+        <div class="flex items-center gap-6">
+          <div class="flex items-center gap-2">
+            <span class="text-sm font-medium text-slate-600">Tool:</span>
+            <span id="currentTool" class="text-sm font-semibold text-indigo-600">Pen</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-sm font-medium text-slate-600">Color:</span>
+            <div id="currentColor" class="w-6 h-6 rounded border-2 border-slate-300" style="background-color: #ff0000;"></div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-sm font-medium text-slate-600">Size:</span>
+            <span id="currentSize" class="text-sm font-semibold text-slate-800">4</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-4">
+          <button id="zoomOutBtn" class="zoom-btn p-2 rounded-lg bg-slate-200 hover:bg-slate-300 transition-colors duration-200" title="Zoom Out (Ctrl+-)">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
+            </svg>
+          </button>
+          <span id="zoomLevel" class="text-sm font-medium text-slate-600 min-w-[60px] text-center">100%</span>
+          <button id="zoomInBtn" class="zoom-btn p-2 rounded-lg bg-slate-200 hover:bg-slate-300 transition-colors duration-200" title="Zoom In (Ctrl+=)">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+            </svg>
+          </button>
+          <button id="fitToScreenBtn" class="zoom-btn p-2 rounded-lg bg-slate-200 hover:bg-slate-300 transition-colors duration-200" title="Fit to Screen">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 1v4m0 0h-4m4 0l-5-5"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
 
-          <div class="mt-4">
-            <label class="block text-sm font-medium mb-2">Tool</label>
-            <div class="grid grid-cols-2 gap-2">
-              <button id="penBtn" class="tool-btn flex-1 py-2 rounded bg-indigo-600 text-white">Pen</button>
-              <button id="eraserBtn" class="tool-btn flex-1 py-2 rounded bg-slate-200">Eraser</button>
-              <button id="lineBtn" class="tool-btn flex-1 py-2 rounded bg-slate-200">Line</button>
-              <button id="squareBtn" class="tool-btn flex-1 py-2 rounded bg-slate-200">Square</button>
-              <button id="rectangleBtn" class="tool-btn flex-1 py-2 rounded bg-slate-200">Rectangle</button>
-              <button id="circleBtn" class="tool-btn flex-1 py-2 rounded bg-slate-200">Circle</button>
-              <button id="verticalBtn" class="tool-btn flex-1 py-2 rounded bg-slate-200">Vertical</button>
-              <button id="horizontalBtn" class="tool-btn flex-1 py-2 rounded bg-slate-200">Horizontal</button>
+      <div class="flex flex-col lg:flex-row gap-6 mb-6 items-start">
+        <!-- Controls Sidebar -->
+        <div id="sidebar" class="bg-white p-5 rounded-lg shadow-xl lg:w-80 w-full lg:sticky lg:top-24 transition-all duration-300 border border-slate-200">
+          <div class="mb-6">
+            <label for="fileInput" class="block text-sm font-semibold mb-3 text-slate-700 flex items-center gap-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+              </svg>
+              Upload PDF
+            </label>
+            <input id="fileInput" type="file" accept="application/pdf" class="block w-full text-sm text-slate-600 file:mr-4 file:py-3 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer transition-colors duration-200" />
+          </div>
+
+          <div class="mb-6">
+            <label class="block text-sm font-semibold mb-3 text-slate-700 flex items-center gap-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+              </svg>
+              Drawing Tools
+            </label>
+            <div id="toolGrid" class="grid grid-cols-2 gap-3">
+              <button id="penBtn" class="tool-btn flex flex-col items-center justify-center p-3 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-all duration-200 shadow-md group" title="Pen Tool (P)">
+                <svg class="mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+                </svg>
+                <span class="tool-label text-xs font-medium">Pen</span>
+              </button>
+              <button id="eraserBtn" class="tool-btn flex flex-col items-center justify-center p-3 rounded-lg bg-slate-200 text-slate-800 hover:bg-slate-300 transition-all duration-200 shadow-md group" title="Eraser Tool (E)">
+                <svg class="mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span class="tool-label text-xs font-medium">Eraser</span>
+              </button>
+              <button id="lineBtn" class="tool-btn flex flex-col items-center justify-center p-3 rounded-lg bg-slate-200 text-slate-800 hover:bg-slate-300 transition-all duration-200 shadow-md group" title="Line Tool (L)">
+                <svg class="mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4"></path>
+                </svg>
+                <span class="tool-label text-xs font-medium">Line</span>
+              </button>
+              <button id="squareBtn" class="tool-btn flex flex-col items-center justify-center p-3 rounded-lg bg-slate-200 text-slate-800 hover:bg-slate-300 transition-all duration-200 shadow-md group" title="Square Tool (S)">
+                <svg class="mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></rect>
+                </svg>
+                <span class="tool-label text-xs font-medium">Square</span>
+              </button>
+              <button id="rectangleBtn" class="tool-btn flex flex-col items-center justify-center p-3 rounded-lg bg-slate-200 text-slate-800 hover:bg-slate-300 transition-all duration-200 shadow-md group" title="Rectangle Tool (R)">
+                <svg class="mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></rect>
+                </svg>
+                <span class="tool-label text-xs font-medium">Rectangle</span>
+              </button>
+              <button id="circleBtn" class="tool-btn flex flex-col items-center justify-center p-3 rounded-lg bg-slate-200 text-slate-800 hover:bg-slate-300 transition-all duration-200 shadow-md group" title="Circle Tool (C)">
+                <svg class="mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="10" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></circle>
+                </svg>
+                <span class="tool-label text-xs font-medium">Circle</span>
+              </button>
+              <button id="verticalBtn" class="tool-btn flex flex-col items-center justify-center p-3 rounded-lg bg-slate-200 text-slate-800 hover:bg-slate-300 transition-all duration-200 shadow-md group" title="Vertical Line (V)">
+                <svg class="mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v20"></path>
+                </svg>
+                <span class="tool-label text-xs font-medium">Vertical</span>
+              </button>
+              <button id="horizontalBtn" class="tool-btn flex flex-col items-center justify-center p-3 rounded-lg bg-slate-200 text-slate-800 hover:bg-slate-300 transition-all duration-200 shadow-md group" title="Horizontal Line (H)">
+                <svg class="mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2 12h20"></path>
+                </svg>
+                <span class="tool-label text-xs font-medium">Horizontal</span>
+              </button>
             </div>
           </div>
 
-          <div class="mt-4">
-            <label class="block text-sm font-medium mb-2">Color</label>
-            <input id="colorInput" type="color" value="#ff0000" class="w-full h-10 p-1" />
+          <div class="mb-6">
+            <label for="colorInput" class="block text-sm font-semibold mb-3 text-slate-700 flex items-center gap-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM21 5a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 004 4h4a2 2 0 002-2V5z"></path>
+              </svg>
+              Color
+            </label>
+            <input id="colorInput" type="color" value="#ff0000" class="w-full h-12 p-1 border border-slate-300 rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md" />
           </div>
 
-          <div class="mt-4">
-            <label class="block text-sm font-medium mb-2">Size</label>
-            <input id="sizeInput" type="range" min="1" max="50" value="4" class="w-full" />
+          <div class="mb-6">
+            <label for="sizeInput" class="block text-sm font-semibold mb-3 text-slate-700 flex items-center gap-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"></path>
+              </svg>
+              Brush Size
+            </label>
+            <input id="sizeInput" type="range" min="1" max="50" value="4" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer range-lg transition-all duration-200" />
+            <div class="flex justify-between text-xs text-slate-500 mt-1">
+              <span>1</span>
+              <span id="sizeValue" class="font-medium">4</span>
+              <span>50</span>
+            </div>
           </div>
 
-          <div class="mt-4 flex gap-2">
-            <button id="undoBtn" class="w-full py-2 rounded bg-yellow-400 text-white">Undo</button>
-            <button id="clearBtn" class="w-full py-2 rounded bg-red-500 text-white">Clear</button>
+          <div class="flex flex-col sm:flex-row gap-3 mb-6">
+            <button id="undoBtn" class="w-full py-3 rounded-lg bg-yellow-400 text-white font-semibold hover:bg-yellow-500 transition-all duration-200 shadow-md flex items-center justify-center gap-2" title="Undo (Ctrl+Z)">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path>
+              </svg>
+              Undo
+            </button>
+            <button id="clearBtn" class="w-full py-3 rounded-lg bg-red-500 text-white font-semibold hover:bg-red-600 transition-all duration-200 shadow-md flex items-center justify-center gap-2" title="Clear All (Ctrl+Delete)">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+              </svg>
+              Clear
+            </button>
           </div>
 
-          <div class="mt-4 flex gap-2">
-            <button id="savePngBtn" class="w-full py-2 rounded bg-green-600 text-white">Save PNG</button>
-            <button id="exportPdfBtn" class="w-full py-2 rounded bg-blue-600 text-white">Export PDF</button>
+          <div class="flex flex-col sm:flex-row gap-3">
+            <button id="savePngBtn" class="w-full py-3 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700 transition-all duration-200 shadow-md flex items-center justify-center gap-2" title="Save as PNG">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+              Save PNG
+            </button>
+            <button id="exportPdfBtn" class="w-full py-3 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-all duration-200 shadow-md flex items-center justify-center gap-2" title="Export PDF">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+              Export PDF
+            </button>
           </div>
 
-          <p class="mt-3 text-xs text-slate-500">Notes: This is a single-page editor. For multi-page, load and navigate pages manually.</p>
+          <div id="loadingIndicator" class="mt-6 hidden flex items-center justify-center">
+            <div class="loading-spinner"></div>
+            <span class="ml-3 text-sm text-slate-600">Processing...</span>
+          </div>
+
+          <div class="mt-6 p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <p class="text-xs text-blue-700 font-medium mb-2">Keyboard Shortcuts:</p>
+            <div class="text-xs text-blue-600 space-y-1">
+              <div><kbd class="px-1 py-0.5 bg-blue-100 rounded text-xs">P</kbd> Pen</div>
+              <div><kbd class="px-1 py-0.5 bg-blue-100 rounded text-xs">E</kbd> Eraser</div>
+              <div><kbd class="px-1 py-0.5 bg-blue-100 rounded text-xs">Ctrl+Z</kbd> Undo</div>
+              <div><kbd class="px-1 py-0.5 bg-blue-100 rounded text-xs">Ctrl+-</kbd> Zoom Out</div>
+            </div>
+          </div>
         </div>
 
-        <div class="flex-1 bg-white p-4 rounded shadow">
-          <div id="viewerContainer" class="relative border border-slate-200 rounded overflow-auto" style="height:78vh;">
+        <!-- PDF Viewer and Drawing Area -->
+        <div class="flex-1 bg-white p-5 rounded-lg shadow-xl min-h-[70vh] flex items-center justify-center relative border border-slate-200">
+          <div id="viewerContainer" class="relative border border-slate-300 rounded-lg overflow-hidden w-full h-full flex items-center justify-center bg-slate-100">
+            <!-- Loading overlay -->
+            <div id="pdfLoading" class="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10 hidden">
+              <div class="text-center">
+                <div class="loading-spinner mx-auto mb-4"></div>
+                <p class="text-slate-600 font-medium">Loading PDF...</p>
+              </div>
+            </div>
             <!-- PDF canvas -->
-            <canvas id="pdfCanvas" class="block mx-auto bg-white"></canvas>
+            <canvas id="pdfCanvas" class="block max-w-full max-h-full bg-white shadow-lg"></canvas>
             <!-- Drawing canvas sits on top -->
-            <canvas id="drawCanvas" class="absolute top-0 left-0 pointer-events-auto"></canvas>
+            <canvas id="drawCanvas" class="absolute top-0 left-0 pointer-events-auto cursor-crosshair"></canvas>
+            <!-- Empty state -->
+            <div id="emptyState" class="absolute inset-0 flex items-center justify-center text-slate-500">
+              <div class="text-center">
+                <svg class="w-16 h-16 mx-auto mb-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <p class="text-lg font-medium mb-2">No PDF loaded</p>
+                <p class="text-sm">Upload a PDF file to start editing</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <p class="text-sm text-slate-600">Usage: Open a PDF, select a tool (Pen, Eraser, Line, Square, Rectangle, Circle, Vertical, Horizontal), draw with mouse/touch, change color and size, Undo or Clear, then save PNG or export PDF with vector annotations. Eraser removes freehand strokes and shapes it overlaps.</p>
+      <!-- Instructions -->
+      <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
+        <h3 class="text-lg font-semibold text-blue-900 mb-3 flex items-center gap-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          How to Use PDF Paint Editor
+        </h3>
+        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-blue-800">
+          <div class="flex items-start gap-3">
+            <div class="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+              <span class="text-xs font-bold text-blue-600">1</span>
+            </div>
+            <div>
+              <strong class="block">Upload</strong>
+              Click "Upload PDF" to load your document.
+            </div>
+          </div>
+          <div class="flex items-start gap-3">
+            <div class="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+              <span class="text-xs font-bold text-blue-600">2</span>
+            </div>
+            <div>
+              <strong class="block">Choose Tool</strong>
+              Select a drawing tool from the sidebar.
+            </div>
+          </div>
+          <div class="flex items-start gap-3">
+            <div class="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+              <span class="text-xs font-bold text-blue-600">3</span>
+            </div>
+            <div>
+              <strong class="block">Customize</strong>
+              Adjust color and brush size as needed.
+            </div>
+          </div>
+          <div class="flex items-start gap-3">
+            <div class="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+              <span class="text-xs font-bold text-blue-600">4</span>
+            </div>
+            <div>
+              <strong class="block">Export</strong>
+              Save as PNG or export as vector PDF.
+            </div>
+          </div>
+        </div>
+        <div class="mt-4 p-3 bg-blue-100 rounded-lg">
+          <p class="text-xs text-blue-700">
+            <strong>Note:</strong> This editor supports single-page PDFs. For multi-page documents, please load and edit pages individually. All annotations are preserved as vector graphics in PDF exports.
+          </p>
+        </div>
+      </div>
     </div>
 
     <script>
       // Basic PDF.js setup
       pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
 
+      // DOM elements
       const fileInput = document.getElementById('fileInput');
       const pdfCanvas = document.getElementById('pdfCanvas');
       const drawCanvas = document.getElementById('drawCanvas');
       const viewerContainer = document.getElementById('viewerContainer');
+      const pdfLoading = document.getElementById('pdfLoading');
+      const emptyState = document.getElementById('emptyState');
+      const loadingIndicator = document.getElementById('loadingIndicator');
+
+      // Tool buttons
+      const penBtn = document.getElementById('penBtn');
+      const eraserBtn = document.getElementById('eraserBtn');
+      const lineBtn = document.getElementById('lineBtn');
+      const squareBtn = document.getElementById('squareBtn');
+      const rectangleBtn = document.getElementById('rectangleBtn');
+      const circleBtn = document.getElementById('circleBtn');
+      const verticalBtn = document.getElementById('verticalBtn');
+      const horizontalBtn = document.getElementById('horizontalBtn');
+
+      // Control elements
+      const colorInput = document.getElementById('colorInput');
+      const sizeInput = document.getElementById('sizeInput');
+      const sizeValue = document.getElementById('sizeValue');
+      const undoBtn = document.getElementById('undoBtn');
+      const clearBtn = document.getElementById('clearBtn');
+      const savePngBtn = document.getElementById('savePngBtn');
+      const exportPdfBtn = document.getElementById('exportPdfBtn');
+
+      // UI elements
+      const darkModeToggle = document.getElementById('darkModeToggle');
+      const sidebarToggle = document.getElementById('sidebarToggle');
+      const sidebar = document.getElementById('sidebar');
+      const statusBar = document.getElementById('statusBar');
+      const currentTool = document.getElementById('currentTool');
+      const currentColor = document.getElementById('currentColor');
+      const currentSize = document.getElementById('currentSize');
+      const zoomLevel = document.getElementById('zoomLevel');
+      const zoomInBtn = document.getElementById('zoomInBtn');
+      const zoomOutBtn = document.getElementById('zoomOutBtn');
+      const fitToScreenBtn = document.getElementById('fitToScreenBtn');
 
       // Helper functions for eraser on shapes
       function getStrokeBbox(stroke) {
@@ -122,86 +433,14 @@
         return !(bbox1.maxX < bbox2.minX || bbox1.minX > bbox2.maxX ||
                  bbox1.maxY < bbox2.minY || bbox1.minY > bbox2.maxY);
       }
-      const eraserBtn = document.getElementById('eraserBtn');
-      const lineBtn = document.getElementById('lineBtn');
-      const squareBtn = document.getElementById('squareBtn');
-      const rectangleBtn = document.getElementById('rectangleBtn');
-      const circleBtn = document.getElementById('circleBtn');
-      const verticalBtn = document.getElementById('verticalBtn');
-      const horizontalBtn = document.getElementById('horizontalBtn');
-      const colorInput = document.getElementById('colorInput');
-      const sizeInput = document.getElementById('sizeInput');
-      const undoBtn = document.getElementById('undoBtn');
-      const clearBtn = document.getElementById('clearBtn');
-      const savePngBtn = document.getElementById('savePngBtn');
-      const exportPdfBtn = document.getElementById('exportPdfBtn');
 
+      // State management
       let pdfDoc = null;
       let currentPage = 1;
       let scale = 1.5;
-
-      function setActiveTool(tool) {
-        const buttons = [penBtn, eraserBtn, lineBtn, squareBtn, rectangleBtn, circleBtn, verticalBtn, horizontalBtn];
-        buttons.forEach(btn => {
-          btn.classList.remove('bg-indigo-600', 'text-white');
-          btn.classList.add('bg-slate-200');
-        });
-        const activeBtn = document.getElementById(tool + 'Btn');
-        activeBtn.classList.add('bg-indigo-600', 'text-white');
-        activeBtn.classList.remove('bg-slate-200');
-        drawState.tool = tool;
-      }
-
-      penBtn.addEventListener('click', () => setActiveTool('pen'));
-      eraserBtn.addEventListener('click', () => setActiveTool('eraser'));
-      lineBtn.addEventListener('click', () => setActiveTool('line'));
-      squareBtn.addEventListener('click', () => setActiveTool('square'));
-      rectangleBtn.addEventListener('click', () => setActiveTool('rectangle'));
-      circleBtn.addEventListener('click', () => setActiveTool('circle'));
-      verticalBtn.addEventListener('click', () => setActiveTool('vertical'));
-      horizontalBtn.addEventListener('click', () => setActiveTool('horizontal'));
-
       let originalPdfArrayBuffer = null;
-
-      fileInput.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const arrayBuffer = await file.arrayBuffer();
-        // keep original for vector export
-        originalPdfArrayBuffer = arrayBuffer;
-        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-        pdfDoc = await loadingTask.promise;
-        currentPage = 1;
-        await renderPage(currentPage);
-      });
-
-      async function renderPage(pageNum) {
-        const page = await pdfDoc.getPage(pageNum);
-        const viewport = page.getViewport({ scale });
-
-        // set canvas size
-        pdfCanvas.width = Math.floor(viewport.width);
-        pdfCanvas.height = Math.floor(viewport.height);
-
-        const context = pdfCanvas.getContext('2d');
-        const renderContext = {
-          canvasContext: context,
-          viewport,
-        };
-
-        await page.render(renderContext).promise;
-
-        // position draw canvas over pdfCanvas
-        drawCanvas.width = pdfCanvas.width;
-        drawCanvas.height = pdfCanvas.height;
-        drawCanvas.style.width = pdfCanvas.style.width = (pdfCanvas.width) + 'px';
-        drawCanvas.style.height = pdfCanvas.style.height = (pdfCanvas.height) + 'px';
-        drawCanvas.style.top = pdfCanvas.offsetTop + 'px';
-        drawCanvas.style.left = pdfCanvas.offsetLeft + 'px';
-
-        // reset drawing state
-        clearAllStrokes();
-      }
+      let isDarkMode = false;
+      let sidebarCollapsed = false;
 
       // Drawing state
       const drawState = {
@@ -214,8 +453,206 @@
         currentShape: null, // for preview
       };
 
-      colorInput.addEventListener('input', (e) => drawState.color = e.target.value);
-      sizeInput.addEventListener('input', (e) => drawState.size = parseInt(e.target.value, 10));
+      // UI State management
+      function updateStatusBar() {
+        currentTool.textContent = drawState.tool.charAt(0).toUpperCase() + drawState.tool.slice(1);
+        currentColor.style.backgroundColor = drawState.color;
+        currentSize.textContent = drawState.size;
+        zoomLevel.textContent = Math.round(scale * 100) + '%';
+      }
+
+      function updateCursor() {
+        if (drawState.tool === 'eraser') {
+          drawCanvas.classList.remove('cursor-crosshair');
+          drawCanvas.classList.add('cursor-eraser');
+        } else {
+          drawCanvas.classList.remove('cursor-eraser');
+          drawCanvas.classList.add('cursor-crosshair');
+        }
+      }
+
+      function toggleDarkMode() {
+        isDarkMode = !isDarkMode;
+        document.body.classList.toggle('dark-mode', isDarkMode);
+        localStorage.setItem('darkMode', isDarkMode);
+        
+        // Update toggle icon
+        const icon = darkModeToggle.querySelector('svg path');
+        if (isDarkMode) {
+          icon.setAttribute('d', 'M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z');
+        } else {
+          icon.setAttribute('d', 'M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z');
+        }
+      }
+
+      function toggleSidebar() {
+        sidebarCollapsed = !sidebarCollapsed;
+        sidebar.classList.toggle('sidebar-collapsed', sidebarCollapsed);
+      }
+
+      function setActiveTool(tool) {
+        const buttons = [penBtn, eraserBtn, lineBtn, squareBtn, rectangleBtn, circleBtn, verticalBtn, horizontalBtn];
+        buttons.forEach(btn => {
+          btn.classList.remove('bg-indigo-600', 'text-white', 'hover:bg-indigo-700');
+          btn.classList.add('bg-slate-200', 'text-slate-800', 'hover:bg-slate-300');
+        });
+        const activeBtn = document.getElementById(tool + 'Btn');
+        if (activeBtn) {
+          activeBtn.classList.remove('bg-slate-200', 'text-slate-800', 'hover:bg-slate-300');
+          activeBtn.classList.add('bg-indigo-600', 'text-white', 'hover:bg-indigo-700');
+        }
+        drawState.tool = tool;
+        updateStatusBar();
+        updateCursor();
+      }
+
+      // Event listeners
+      darkModeToggle.addEventListener('click', toggleDarkMode);
+      sidebarToggle.addEventListener('click', toggleSidebar);
+
+      penBtn.addEventListener('click', () => setActiveTool('pen'));
+      eraserBtn.addEventListener('click', () => setActiveTool('eraser'));
+      lineBtn.addEventListener('click', () => setActiveTool('line'));
+      squareBtn.addEventListener('click', () => setActiveTool('square'));
+      rectangleBtn.addEventListener('click', () => setActiveTool('rectangle'));
+      circleBtn.addEventListener('click', () => setActiveTool('circle'));
+      verticalBtn.addEventListener('click', () => setActiveTool('vertical'));
+      horizontalBtn.addEventListener('click', () => setActiveTool('horizontal'));
+
+      colorInput.addEventListener('input', (e) => {
+        drawState.color = e.target.value;
+        updateStatusBar();
+      });
+
+      sizeInput.addEventListener('input', (e) => {
+        drawState.size = parseInt(e.target.value, 10);
+        sizeValue.textContent = drawState.size;
+        updateStatusBar();
+      });
+
+      // Zoom controls
+      zoomInBtn.addEventListener('click', () => {
+        scale = Math.min(scale * 1.2, 5);
+        if (pdfDoc) renderPage(currentPage);
+      });
+
+      zoomOutBtn.addEventListener('click', () => {
+        scale = Math.max(scale / 1.2, 0.5);
+        if (pdfDoc) renderPage(currentPage);
+      });
+
+      fitToScreenBtn.addEventListener('click', () => {
+        scale = 1.5; // Reset to default
+        if (pdfDoc) renderPage(currentPage);
+      });
+
+      // Keyboard shortcuts
+      document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey || e.metaKey) {
+          switch (e.key) {
+            case 'z':
+              e.preventDefault();
+              undoBtn.click();
+              break;
+            case 'y':
+              // Could implement redo
+              break;
+            case '=':
+            case '+':
+              e.preventDefault();
+              zoomInBtn.click();
+              break;
+            case '-':
+              e.preventDefault();
+              zoomOutBtn.click();
+              break;
+            case 'Delete':
+              e.preventDefault();
+              clearBtn.click();
+              break;
+          }
+        } else {
+          switch (e.key.toLowerCase()) {
+            case 'p':
+              setActiveTool('pen');
+              break;
+            case 'e':
+              setActiveTool('eraser');
+              break;
+            case 'l':
+              setActiveTool('line');
+              break;
+            case 's':
+              setActiveTool('square');
+              break;
+            case 'r':
+              setActiveTool('rectangle');
+              break;
+            case 'c':
+              setActiveTool('circle');
+              break;
+            case 'v':
+              setActiveTool('vertical');
+              break;
+            case 'h':
+              setActiveTool('horizontal');
+              break;
+          }
+        }
+      });
+
+      fileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        pdfLoading.classList.remove('hidden');
+        emptyState.classList.add('hidden');
+
+        try {
+          const arrayBuffer = await file.arrayBuffer();
+          originalPdfArrayBuffer = arrayBuffer;
+          const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+          pdfDoc = await loadingTask.promise;
+          currentPage = 1;
+          await renderPage(currentPage);
+        } catch (error) {
+          console.error('Error loading PDF:', error);
+          alert('Error loading PDF. Please try again.');
+        } finally {
+          pdfLoading.classList.add('hidden');
+        }
+      });
+
+      async function renderPage(pageNum) {
+        if (!pdfDoc) return;
+
+        const page = await pdfDoc.getPage(pageNum);
+        const viewport = page.getViewport({ scale });
+
+        // Set canvas size
+        pdfCanvas.width = Math.floor(viewport.width);
+        pdfCanvas.height = Math.floor(viewport.height);
+
+        const context = pdfCanvas.getContext('2d');
+        const renderContext = {
+          canvasContext: context,
+          viewport,
+        };
+
+        await page.render(renderContext).promise;
+
+        // Position draw canvas over pdfCanvas
+        drawCanvas.width = pdfCanvas.width;
+        drawCanvas.height = pdfCanvas.height;
+        drawCanvas.style.width = pdfCanvas.style.width = (pdfCanvas.width) + 'px';
+        drawCanvas.style.height = pdfCanvas.style.height = (pdfCanvas.height) + 'px';
+        drawCanvas.style.top = pdfCanvas.offsetTop + 'px';
+        drawCanvas.style.left = pdfCanvas.offsetLeft + 'px';
+
+        // Reset drawing state
+        clearAllStrokes();
+        updateStatusBar();
+      }
 
       function getCanvasPoint(evt) {
         const rect = drawCanvas.getBoundingClientRect();
@@ -356,7 +793,11 @@
         redraw();
       });
 
-      clearBtn.addEventListener('click', () => clearAllStrokes());
+      clearBtn.addEventListener('click', () => {
+        if (confirm('Are you sure you want to clear all annotations? This action cannot be undone.')) {
+          clearAllStrokes();
+        }
+      });
 
       function clearAllStrokes() {
         drawState.strokes = [];
@@ -366,6 +807,10 @@
       }
 
       savePngBtn.addEventListener('click', () => {
+        if (!pdfDoc) {
+          alert('Please load a PDF first');
+          return;
+        }
         // flatten pdfCanvas + drawCanvas to single PNG
         const w = pdfCanvas.width, h = pdfCanvas.height;
         const out = document.createElement('canvas');
@@ -381,11 +826,12 @@
       });
 
       exportPdfBtn.addEventListener('click', async () => {
-        // Preferred: use pdf-lib to load the original PDF and draw vector strokes on top
         if (!originalPdfArrayBuffer) {
           alert('Please load a PDF first');
           return;
         }
+
+        loadingIndicator.classList.remove('hidden');
 
         try {
           const { PDFDocument, rgb } = PDFLib;
@@ -549,11 +995,53 @@
           const pdf = new jsPDF({ unit: 'px', format: [w, h] });
           pdf.addImage(imgData, 'PNG', 0, 0, w, h);
           pdf.save('edited-page.pdf');
+        } finally {
+          loadingIndicator.classList.add('hidden');
         }
       });
 
-      // initialize default tool
+      // Initialize
       setActiveTool('pen');
+      updateStatusBar();
+
+      // Load dark mode preference
+      if (localStorage.getItem('darkMode') === 'true') {
+        toggleDarkMode();
+      }
+
+      // Add responsiveness for viewerContainer and canvas resizing
+      window.addEventListener('resize', () => {
+        if (pdfDoc) {
+          renderPage(currentPage);
+        }
+      });
+
+      // Touch support for mobile
+      drawCanvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const mouseEvent = new MouseEvent('pointerdown', {
+          clientX: touch.clientX,
+          clientY: touch.clientY,
+        });
+        drawCanvas.dispatchEvent(mouseEvent);
+      });
+
+      drawCanvas.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const mouseEvent = new MouseEvent('pointermove', {
+          clientX: touch.clientX,
+          clientY: touch.clientY,
+        });
+        drawCanvas.dispatchEvent(mouseEvent);
+      });
+
+      drawCanvas.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        const mouseEvent = new MouseEvent('pointerup');
+        drawCanvas.dispatchEvent(mouseEvent);
+      });
     </script>
   </body>
 </html>
