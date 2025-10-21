@@ -232,12 +232,6 @@
                 </svg>
                 <span class="tool-label text-xs font-medium">Horizontal</span>
               </button>
-              <button id="textBtn" class="tool-btn flex flex-col items-center justify-center p-3 rounded-lg bg-slate-200 text-slate-800 hover:bg-slate-300 transition-all duration-200 shadow-md group" title="Text Tool (T)">
-                <svg class="mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path>
-                </svg>
-                <span class="tool-label text-xs font-medium">Text</span>
-              </button>
             </div>
           </div>
 
@@ -440,7 +434,6 @@
       const circleBtn = document.getElementById('circleBtn');
       const verticalBtn = document.getElementById('verticalBtn');
       const horizontalBtn = document.getElementById('horizontalBtn');
-      const textBtn = document.getElementById('textBtn');
 
       // Control elements
       const colorInput = document.getElementById('colorInput');
@@ -527,7 +520,7 @@
       let isDarkMode = false;
       let sidebarCollapsed = false;
 
-      // Drawing state per page - {pageNumber: {strokes: [], shapes: [], texts: []}}
+      // Drawing state per page - {pageNumber: {strokes: [], shapes: []}}
       const pageAnnotations = {};
 
       // Current drawing state (temporary, gets saved to pageAnnotations)
@@ -540,7 +533,6 @@
         fillColor: fillColorInput.value,
         strokes: [], // each stroke: {tool, color, size, points: [{x,y}]}
         shapes: [], // each shape: {type, start: {x,y}, end: {x,y}, color, size, fillEnabled, fillColor}
-        texts: [], // each text: {x, y, text, color, size, fontFamily, editing: boolean}
         currentShape: null, // for preview
       };
 
@@ -548,8 +540,7 @@
       function saveCurrentPageAnnotations() {
         pageAnnotations[currentPage] = {
           strokes: JSON.parse(JSON.stringify(drawState.strokes)),
-          shapes: JSON.parse(JSON.stringify(drawState.shapes)),
-          texts: JSON.parse(JSON.stringify(drawState.texts))
+          shapes: JSON.parse(JSON.stringify(drawState.shapes))
         };
       }
 
@@ -558,11 +549,9 @@
         if (annotations) {
           drawState.strokes = JSON.parse(JSON.stringify(annotations.strokes));
           drawState.shapes = JSON.parse(JSON.stringify(annotations.shapes));
-          drawState.texts = JSON.parse(JSON.stringify(annotations.texts || []));
         } else {
           drawState.strokes = [];
           drawState.shapes = [];
-          drawState.texts = [];
         }
       }
 
@@ -627,7 +616,7 @@
       }
 
       function setActiveTool(tool) {
-        const buttons = [penBtn, eraserBtn, lineBtn, squareBtn, rectangleBtn, circleBtn, verticalBtn, horizontalBtn, textBtn];
+        const buttons = [penBtn, eraserBtn, lineBtn, squareBtn, rectangleBtn, circleBtn, verticalBtn, horizontalBtn];
         buttons.forEach(btn => {
           btn.classList.remove('bg-indigo-600', 'text-white', 'hover:bg-indigo-700');
           btn.classList.add('bg-slate-200', 'text-slate-800', 'hover:bg-slate-300');
@@ -654,7 +643,6 @@
       circleBtn.addEventListener('click', () => setActiveTool('circle'));
       verticalBtn.addEventListener('click', () => setActiveTool('vertical'));
       horizontalBtn.addEventListener('click', () => setActiveTool('horizontal'));
-      textBtn.addEventListener('click', () => setActiveTool('text'));
 
       colorInput.addEventListener('input', (e) => {
         drawState.color = e.target.value;
@@ -810,9 +798,6 @@
             case 'h':
               setActiveTool('horizontal');
               break;
-            case 't':
-              setActiveTool('text');
-              break;
             case 'arrowleft':
             case 'pageup':
               navigateToPage(currentPage - 1);
@@ -891,118 +876,9 @@
         return { x, y };
       }
 
-      function createTextInput(x, y, existingText = '', editIndex = -1) {
-        // Remove any existing text input
-        const existingInput = document.querySelector('.text-input');
-        if (existingInput) {
-          existingInput.remove();
-        }
-        
-        // Get the canvas position
-        const rect = drawCanvas.getBoundingClientRect();
-        const canvasX = rect.left + (x * rect.width / drawCanvas.width);
-        const canvasY = rect.top + (y * rect.height / drawCanvas.height);
-        
-        // Create input element
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.className = 'text-input';
-        input.style.position = 'fixed';
-        input.style.left = canvasX + 'px';
-        input.style.top = (canvasY - 10) + 'px';
-        input.style.fontSize = drawState.size + 'px';
-        input.style.color = drawState.color;
-        input.style.backgroundColor = 'white';
-        input.style.border = '2px solid #3b82f6';
-        input.style.borderRadius = '4px';
-        input.style.padding = '4px 8px';
-        input.style.minWidth = '100px';
-        input.style.zIndex = '10000';
-        input.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
-        input.value = existingText;
-        
-        // Add to document
-        document.body.appendChild(input);
-        input.focus();
-        input.select(); // Select existing text for easy editing
-        
-        // Handle input completion
-        const finishTextInput = () => {
-          const text = input.value.trim();
-          if (text) {
-            if (editIndex >= 0) {
-              // Update existing text
-              drawState.texts[editIndex].text = text;
-              drawState.texts[editIndex].color = drawState.color;
-              drawState.texts[editIndex].size = drawState.size;
-            } else {
-              // Add new text
-              drawState.texts.push({
-                x: x,
-                y: y,
-                text: text,
-                color: drawState.color,
-                size: drawState.size
-              });
-            }
-            redraw();
-            saveCurrentPageAnnotations();
-          } else if (editIndex >= 0) {
-            // If empty and editing, remove the text
-            drawState.texts.splice(editIndex, 1);
-            redraw();
-            saveCurrentPageAnnotations();
-          }
-          input.remove();
-        };
-        
-        input.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            finishTextInput();
-          } else if (e.key === 'Escape') {
-            e.preventDefault();
-            input.remove();
-          }
-        });
-        
-        input.addEventListener('blur', finishTextInput);
-      }
-
       drawCanvas.addEventListener('pointerdown', (e) => {
         drawCanvas.setPointerCapture(e.pointerId);
         const p = getCanvasPoint(e);
-        
-        if (drawState.tool === 'text') {
-          // Check if clicking on existing text to edit it
-          const ctx = drawCanvas.getContext('2d');
-          let clickedTextIndex = -1;
-          
-          for (let i = drawState.texts.length - 1; i >= 0; i--) {
-            const textItem = drawState.texts[i];
-            ctx.font = `${textItem.size}px Arial`;
-            const metrics = ctx.measureText(textItem.text);
-            const textWidth = metrics.width;
-            const textHeight = textItem.size; // approximate height
-            
-            // Check if click is within text bounds
-            if (p.x >= textItem.x && p.x <= textItem.x + textWidth &&
-                p.y >= textItem.y - textHeight && p.y <= textItem.y) {
-              clickedTextIndex = i;
-              break;
-            }
-          }
-          
-          if (clickedTextIndex >= 0) {
-            // Edit existing text
-            const textItem = drawState.texts[clickedTextIndex];
-            createTextInput(textItem.x, textItem.y, textItem.text, clickedTextIndex);
-          } else {
-            // Create new text input at click position
-            createTextInput(p.x, p.y);
-          }
-          return;
-        }
         
         drawState.drawing = true;
         if (drawState.tool === 'pen' || drawState.tool === 'eraser') {
@@ -1097,12 +973,6 @@
         if (drawState.currentShape) {
           drawShape(ctx, drawState.currentShape);
         }
-        // draw texts
-        for (const textItem of drawState.texts) {
-          ctx.font = `${textItem.size}px Arial`;
-          ctx.fillStyle = textItem.color;
-          ctx.fillText(textItem.text, textItem.x, textItem.y);
-        }
       }
 
       function drawShape(ctx, shape) {
@@ -1161,9 +1031,7 @@
       }
 
       undoBtn.addEventListener('click', () => {
-        if (drawState.texts.length > 0) {
-          drawState.texts.pop();
-        } else if (drawState.shapes.length > 0) {
+        if (drawState.shapes.length > 0) {
           drawState.shapes.pop();
         } else if (drawState.strokes.length > 0) {
           drawState.strokes.pop();
@@ -1181,7 +1049,6 @@
       function clearCurrentPageStrokes() {
         drawState.strokes = [];
         drawState.shapes = [];
-        drawState.texts = [];
         const ctx = drawCanvas.getContext('2d');
         ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
         saveCurrentPageAnnotations();
@@ -1227,7 +1094,7 @@
             
             // Load annotations for this page
             const annotations = pageAnnotations[pageNum];
-            if (!annotations || (annotations.strokes.length === 0 && annotations.shapes.length === 0 && annotations.texts.length === 0)) {
+            if (!annotations || (annotations.strokes.length === 0 && annotations.shapes.length === 0)) {
               continue; // Skip pages with no annotations
             }
 
@@ -1401,18 +1268,6 @@
               }
             }
 
-            // Draw texts
-            for (const textItem of annotations.texts || []) {
-              const col = hexToRgbNormalized(textItem.color || '#000000');
-              const fontSize = textItem.size * (pdfWidth / canvasW);
-              const pos = toPdfPoint({ x: textItem.x, y: textItem.y });
-              page.drawText(textItem.text, {
-                x: pos.x,
-                y: pos.y,
-                size: fontSize,
-                color: rgb(col.r, col.g, col.b),
-              });
-            }
           }
 
           const modifiedPdfBytes = await pdfDocLib.save();
