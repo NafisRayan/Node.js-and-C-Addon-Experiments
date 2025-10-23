@@ -1,0 +1,24 @@
+{
+  "name": "pdf-form-generation",
+  "version": "1.0.0",
+  "description": "PDF Form Generation - COUA Letter Generator",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "generate": "node index.js"
+  },
+  "keywords": [
+    "pdf",
+    "form",
+    "generation",
+    "coua",
+    "certificate",
+    "unit-allocation"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "pdf-lib": "^1.17.1",
+    "sharp": "^0.33.0"
+  }
+}
