@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Coordinate Finder</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Inter', sans-serif;
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        #pdf-viewer-container {
+            position: relative;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+        }
+        #pdf-canvas {
+            display: block;
+            border-radius: 15px;
+        }
+        #coordinates-display {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 25px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        .sidebar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        .input-field {
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            transition: border-color 0.3s ease;
+        }
+        .input-field:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .coord-item {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            transition: background-color 0.3s ease;
+        }
+        .coord-item:hover {
+            background: #e2e8f0;
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+    <div class="min-h-screen p-6">
+        <div class="max-w-7xl mx-auto">
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <h1 class="text-4xl font-bold text-white mb-2 flex items-center justify-center">
+                    <i class="fas fa-crosshairs mr-3"></i>
+                    PDF Coordinate Finder
+                </h1>
+                <p class="text-white/80">Precisely locate and save coordinates on your PDF documents</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                <!-- Main Viewer -->
+                <div class="lg:col-span-3">
+                    <div class="card p-6">
+                        <!-- File Upload -->
+                        <div class="mb-6">
+                            <label for="pdf-upload" class="block text-lg font-semibold mb-3 text-gray-700">
+                                <i class="fas fa-upload mr-2"></i>Upload PDF
+                            </label>
+                            <div class="relative">
+                                <input type="file" id="pdf-upload" accept=".pdf" class="hidden">
+                                <label for="pdf-upload" class="flex items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-blue-400 transition-colors">
+                                    <div class="text-center">
+                                        <i class="fas fa-file-pdf text-4xl text-gray-400 mb-2"></i>
+                                        <p class="text-gray-600">Click to upload or drag and drop</p>
+                                        <p class="text-sm text-gray-500">PDF files only</p>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Page Navigation -->
+                        <div class="mb-6 flex items-center justify-between bg-gray-50 rounded-xl p-4">
+                            <button id="prev-page" class="btn-primary text-white px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                                <i class="fas fa-chevron-left mr-2"></i>Previous
+                            </button>
+                            <div class="flex items-center space-x-4">
+                                <span id="page-info" class="text-lg font-semibold text-gray-700">Page: 0 / 0</span>
+                                <div class="flex items-center space-x-2">
+                                    <label for="page-num" class="text-sm font-medium text-gray-600">Go to:</label>
+                                    <input type="number" id="page-num" min="1" class="input-field w-16 px-2 py-1 text-center">
+                                    <button id="go-to-page" class="btn-primary text-white px-3 py-1 rounded-lg text-sm">
+                                        <i class="fas fa-arrow-right"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <button id="next-page" class="btn-primary text-white px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                                Next<i class="fas fa-chevron-right ml-2"></i>
+                            </button>
+                        </div>
+
+                        <!-- PDF Viewer -->
+                        <div id="pdf-viewer-container" class="relative">
+                            <canvas id="pdf-canvas"></canvas>
+                            <div id="coordinates-display" class="hidden">
+                                <i class="fas fa-map-marker-alt mr-2"></i>
+                                X: 0.00, Y: 0.00
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sidebar -->
+                <div class="lg:col-span-1 space-y-6">
+                    <!-- Reference Point -->
+                    <div class="sidebar p-6">
+                        <h2 class="text-xl font-semibold mb-4 text-gray-700 flex items-center">
+                            <i class="fas fa-bullseye mr-2 text-blue-500"></i>
+                            Reference Point
+                        </h2>
+                        <div class="space-y-3">
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label for="ref-x" class="block text-sm font-medium text-gray-600 mb-1">Ref X</label>
+                                    <input type="number" id="ref-x" step="0.01" class="input-field w-full px-3 py-2">
+                                </div>
+                                <div>
+                                    <label for="ref-y" class="block text-sm font-medium text-gray-600 mb-1">Ref Y</label>
+                                    <input type="number" id="ref-y" step="0.01" class="input-field w-full px-3 py-2">
+                                </div>
+                            </div>
+                            <button id="set-reference" class="btn-primary text-white w-full py-2 rounded-lg font-medium">
+                                <i class="fas fa-crosshairs mr-2"></i>Set Reference Point
+                            </button>
+                            <p id="current-reference" class="text-sm text-gray-600 mt-2">
+                                <i class="fas fa-info-circle mr-1"></i>Current Reference: Not set
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Save & Export -->
+                    <div class="sidebar p-6">
+                        <h2 class="text-xl font-semibold mb-4 text-gray-700 flex items-center">
+                            <i class="fas fa-save mr-2 text-green-500"></i>
+                            Save Coordinates
+                        </h2>
+                        <div class="space-y-3">
+                            <input type="text" id="coord-name" placeholder="Coordinate name" class="input-field w-full px-3 py-2">
+                            <div class="flex space-x-2">
+                                <button id="save-coord" class="btn-primary text-white flex-1 py-2 rounded-lg font-medium">
+                                    <i class="fas fa-plus mr-2"></i>Save
+                                </button>
+                                <button id="export-json" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg transition-all duration-300 font-medium">
+                                    <i class="fas fa-download mr-2"></i>Export
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <h3 class="text-sm font-semibold text-gray-600 mb-2">Saved Coordinates</h3>
+                            <ul id="coord-list" class="space-y-1 max-h-40 overflow-y-auto"></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.worker.min.js';
+
+        const pdfUpload = document.getElementById('pdf-upload');
+        const pdfCanvas = document.getElementById('pdf-canvas');
+        const coordinatesDisplay = document.getElementById('coordinates-display');
+        const setReferenceButton = document.getElementById('set-reference');
+        const refXInput = document.getElementById('ref-x');
+        const refYInput = document.getElementById('ref-y');
+        const currentReferenceDisplay = document.getElementById('current-reference');
+        const ctx = pdfCanvas.getContext('2d');
+
+        let pdfDoc = null;
+        let pageNum = 1;
+        let pageRendering = false;
+        let pageNumPending = null;
+        let scale = 1.5;
+        let viewport;
+        let referencePoint = null; // { x: canvasX, y: canvasY, refX: userX, refY: userY }
+
+        const prevPageBtn = document.getElementById('prev-page');
+        const nextPageBtn = document.getElementById('next-page');
+        const pageInfo = document.getElementById('page-info');
+        const pageNumInput = document.getElementById('page-num');
+        const goToPageBtn = document.getElementById('go-to-page');
+
+        function renderPage(num) {
+            pageRendering = true;
+            pdfDoc.getPage(num).then(function(page) {
+                viewport = page.getViewport({ scale: scale });
+                pdfCanvas.height = viewport.height;
+                pdfCanvas.width = viewport.width;
+
+                const renderContext = {
+                    canvasContext: ctx,
+                    viewport: viewport
+                };
+                const renderTask = page.render(renderContext);
+
+                renderTask.promise.then(function() {
+                    pageRendering = false;
+                    if (pageNumPending !== null) {
+                        renderPage(pageNumPending);
+                        pageNumPending = null;
+                    }
+                    updatePageControls();
+                });
+            });
+        }
+
+        function queueRenderPage(num) {
+            if (pageRendering) {
+                pageNumPending = num;
+            } else {
+                renderPage(num);
+            }
+        }
+
+        pdfUpload.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file && file.type === 'application/pdf') {
+                const fileReader = new FileReader();
+                fileReader.onload = function() {
+                    const typedarray = new Uint8Array(this.result);
+                    pdfjsLib.getDocument(typedarray).promise.then(function(pdf) {
+                        pdfDoc = pdf;
+                        pageNum = 1;
+                        renderPage(pageNum);
+                        coordinatesDisplay.classList.remove('hidden');
+                        referencePoint = null; // Reset reference when new PDF is loaded
+                        currentReferenceDisplay.innerHTML = '<i class="fas fa-info-circle mr-1"></i>Current Reference: Not set';
+                        refXInput.value = '';
+                        refYInput.value = '';
+                        updatePageControls();
+                    });
+                };
+                fileReader.readAsArrayBuffer(file);
+            }
+        });
+
+        pdfCanvas.addEventListener('mousemove', function(event) {
+            if (!pdfDoc) return;
+
+            const rect = pdfCanvas.getBoundingClientRect();
+            const canvasX = event.clientX - rect.left;
+            const canvasY = event.clientY - rect.top;
+
+            let displayX, displayY;
+
+            if (referencePoint) {
+                // Calculate position relative to reference point
+                const deltaX = canvasX - referencePoint.x;
+                const deltaY = canvasY - referencePoint.y;
+
+                // Scale deltas to user-defined units
+                // Assuming 1 unit in canvas = 1 unit in user-defined coordinates for now
+                // This will need adjustment if user units are different from canvas pixels
+                displayX = referencePoint.refX + deltaX / scale;
+                displayY = referencePoint.refY - deltaY / scale; // Y-axis inverted for bottom-left origin
+
+            } else {
+                // Display raw canvas coordinates (bottom-left origin)
+                displayX = canvasX / scale;
+                displayY = (viewport.height - canvasY) / scale;
+            }
+
+            coordinatesDisplay.innerHTML = `<i class="fas fa-map-marker-alt mr-2"></i>X: ${displayX.toFixed(2)}, Y: ${displayY.toFixed(2)}`;
+        });
+
+        pdfCanvas.addEventListener('click', function(event) {
+            if (!pdfDoc) return;
+
+            const rect = pdfCanvas.getBoundingClientRect();
+            const canvasX = event.clientX - rect.left;
+            const canvasY = event.clientY - rect.top;
+
+            // Store the clicked canvas coordinates for reference point setting
+            refXInput.value = (canvasX / scale).toFixed(2);
+            refYInput.value = ((viewport.height - canvasY) / scale).toFixed(2);
+
+            // Save last clicked position for coordinate saving
+            pdfCanvas.lastClicked = {
+                canvasX,
+                canvasY
+            };
+        });
+
+        setReferenceButton.addEventListener('click', function() {
+            if (!pdfDoc) {
+                alert('Please upload a PDF first.');
+                return;
+            }
+
+            const refX = parseFloat(refXInput.value);
+            const refY = parseFloat(refYInput.value);
+
+            if (isNaN(refX) || isNaN(refY)) {
+                alert('Please enter valid reference coordinates.');
+                return;
+            }
+
+            if (!pdfCanvas.lastClicked) {
+                alert('Please click on the PDF to set the reference point.');
+                return;
+            }
+
+            referencePoint = {
+                x: pdfCanvas.lastClicked.canvasX,
+                y: pdfCanvas.lastClicked.canvasY,
+                refX: refX,
+                refY: refY
+            };
+
+            currentReferenceDisplay.innerHTML = `<i class="fas fa-check-circle mr-1 text-green-500"></i>Current Reference: (${refX.toFixed(2)}, ${refY.toFixed(2)})`;
+        });
+
+        function updatePageControls() {
+            if (!pdfDoc) return;
+
+            const totalPages = pdfDoc.numPages;
+            pageInfo.textContent = `Page: ${pageNum} / ${totalPages}`;
+            pageNumInput.value = pageNum;
+
+            prevPageBtn.disabled = pageNum <= 1;
+            nextPageBtn.disabled = pageNum >= totalPages;
+            pageNumInput.max = totalPages;
+        }
+
+        function goToPage(pageNumber) {
+            if (!pdfDoc || pageNumber < 1 || pageNumber > pdfDoc.numPages) return;
+            pageNum = pageNumber;
+            queueRenderPage(pageNum);
+        }
+
+        prevPageBtn.addEventListener('click', function() {
+            if (pageNum > 1) {
+                pageNum--;
+                queueRenderPage(pageNum);
+            }
+        });
+
+        nextPageBtn.addEventListener('click', function() {
+            if (pageNum < pdfDoc.numPages) {
+                pageNum++;
+                queueRenderPage(pageNum);
+            }
+        });
+
+        goToPageBtn.addEventListener('click', function() {
+            const pageNumber = parseInt(pageNumInput.value);
+            if (!isNaN(pageNumber)) {
+                goToPage(pageNumber);
+            }
+        });
+
+        pageNumInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                const pageNumber = parseInt(pageNumInput.value);
+                if (!isNaN(pageNumber)) {
+                    goToPage(pageNumber);
+                }
+            }
+        });
+
+        // --- Coordinate Saving & Export Logic ---
+        const saveCoordBtn = document.getElementById('save-coord');
+        const exportJsonBtn = document.getElementById('export-json');
+        const coordNameInput = document.getElementById('coord-name');
+        const coordList = document.getElementById('coord-list');
+
+        let savedCoordinates = [];
+
+        pdfCanvas.addEventListener('click', function(event) {
+            if (!pdfDoc) return;
+
+            const rect = pdfCanvas.getBoundingClientRect();
+            const canvasX = event.clientX - rect.left;
+            const canvasY = event.clientY - rect.top;
+
+            // Store the clicked canvas coordinates
+            refXInput.value = (canvasX / scale).toFixed(2);
+            refYInput.value = ((viewport.height - canvasY) / scale).toFixed(2);
+
+            // Save last clicked position for coordinate saving
+            pdfCanvas.lastClicked = {
+                canvasX,
+                canvasY
+            };
+        });
+
+        saveCoordBtn.addEventListener('click', function() {
+            if (!pdfDoc || !pdfCanvas.lastClicked) {
+                alert('Please upload a PDF and click on it to select a coordinate.');
+                return;
+            }
+            const name = coordNameInput.value.trim();
+            if (!name) {
+                alert('Please enter a name for the coordinate.');
+                return;
+            }
+
+            let displayX, displayY;
+            const { canvasX, canvasY } = pdfCanvas.lastClicked;
+
+            if (referencePoint) {
+                const deltaX = canvasX - referencePoint.x;
+                const deltaY = canvasY - referencePoint.y;
+                displayX = referencePoint.refX + deltaX / scale;
+                displayY = referencePoint.refY - deltaY / scale;
+            } else {
+                displayX = canvasX / scale;
+                displayY = (viewport.height - canvasY) / scale;
+            }
+
+            savedCoordinates.push({
+                name,
+                x: parseFloat(displayX.toFixed(2)),
+                y: parseFloat(displayY.toFixed(2))
+            });
+
+            updateCoordList();
+            coordNameInput.value = '';
+
+            // Visual feedback
+            saveCoordBtn.innerHTML = '<i class="fas fa-check mr-2"></i>Saved!';
+            setTimeout(() => {
+                saveCoordBtn.innerHTML = '<i class="fas fa-plus mr-2"></i>Save';
+            }, 1500);
+        });
+
+        function updateCoordList() {
+            coordList.innerHTML = '';
+            if (savedCoordinates.length === 0) {
+                coordList.innerHTML = '<li class="text-gray-500 text-sm italic">No coordinates saved yet</li>';
+                return;
+            }
+            savedCoordinates.forEach((coord, index) => {
+                const li = document.createElement('li');
+                li.className = 'coord-item flex items-center justify-between';
+                li.innerHTML = `
+                    <span><strong>${coord.name}:</strong> (${coord.x}, ${coord.y})</span>
+                    <button class="text-red-500 hover:text-red-700 ml-2" onclick="removeCoord(${index})">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                `;
+                coordList.appendChild(li);
+            });
+        }
+
+        function removeCoord(index) {
+            savedCoordinates.splice(index, 1);
+            updateCoordList();
+        }
+
+        exportJsonBtn.addEventListener('click', function() {
+            if (savedCoordinates.length === 0) {
+                alert('No coordinates to export.');
+                return;
+            }
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(savedCoordinates, null, 2));
+            const dlAnchor = document.createElement('a');
+            dlAnchor.setAttribute("href", dataStr);
+            dlAnchor.setAttribute("download", "coordinates.json");
+            document.body.appendChild(dlAnchor);
+            dlAnchor.click();
+            dlAnchor.remove();
+        });
+
+        // Initialize
+        updateCoordList();
+    </script>
+</body>
+</html>

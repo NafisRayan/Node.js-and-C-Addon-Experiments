@@ -8,8 +8,8 @@ class PortfolioStatementService {
     // Create a new PDF document
     const pdfDoc = await PDFDocument.create();
     const page = pdfDoc.addPage([595.28, 841.89]); // A4 size
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const font = await pdfDoc.embedFont(StandardFonts.TimesRoman);
+    const boldFont = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
 
     // Fill up header section with fund information
     await PortfolioStatementPdfUtils.fillUpHeaderInfo(pdfDoc, page, font, boldFont, {
@@ -29,7 +29,7 @@ class PortfolioStatementService {
     });
 
     // Fill up investment table
-    await PortfolioStatementPdfUtils.fillUpInvestmentTable(page, font, boldFont, {
+    const tableEndY = await PortfolioStatementPdfUtils.fillUpInvestmentTable(page, font, boldFont, {
       fundDeposit: data.fundDeposit,
       dividendReinvested: data.dividendReinvested,
       totalDeposit: data.totalDeposit,
@@ -52,8 +52,8 @@ class PortfolioStatementService {
       cashBalance: data.cashBalance,
     });
 
-    // Fill up footer note
-    await PortfolioStatementPdfUtils.fillUpFooterNote(page, font, boldFont);
+    // Fill up footer note (2 lines under table)
+    await PortfolioStatementPdfUtils.fillUpFooterNote(page, font, boldFont, tableEndY);
 
     return Buffer.from(await pdfDoc.save());
   }

@@ -3,147 +3,148 @@ const { rgb } = require('pdf-lib');
 const { PdfCommonUtils } = require('../pdf-common-utils');
 
 const fillUpHeaderInfo = async (pdfDoc, page, font, boldFont, data) => {
-  // Add logo
+  // Add logo - reduced height, increased width slightly, moved higher
   await PdfCommonUtils.embedAndDrawImage(
     pdfDoc,
     page,
     path.join(__dirname, '../saml_logo.png'),
-    50,
-    765,
-    120,
-    35,
+    45,
+    783,
+    110,
+    24,
     'Logo image must be a JPEG or PNG image',
   );
 
-  // Fund name (large, bold, centered) - positioned right to avoid logo overlap
-  const fundNameWidth = boldFont.widthOfTextAtSize(data.fundName.toUpperCase(), 16);
+  // Fund name (bold, centered) - slightly smaller font (15), moved higher and more left
+  const fundNameWidth = boldFont.widthOfTextAtSize(data.fundName.toUpperCase(), 15);
+  const leftShift = 155; // More left from 160
   PdfCommonUtils.writeText(page, boldFont, {
     text: data.fundName.toUpperCase(),
-    x: 180 + (page.getWidth() - 180 - 50 - fundNameWidth) / 2,
-    y: 785,
-    size: 16,
+    x: leftShift + (page.getWidth() - leftShift - 50 - fundNameWidth) / 2,
+    y: 805,
+    size: 15,
     xAlign: 'left',
   });
 
-  // Registered under - centered in available space
+  // Registered under - 30% bigger font (7 * 1.3 = 9.1) - more space
   const registeredText = `Registered under the ${data.registeredUnder}`;
-  const registeredWidth = font.widthOfTextAtSize(registeredText, 8.5);
+  const registeredWidth = font.widthOfTextAtSize(registeredText, 9.1);
   PdfCommonUtils.writeText(page, font, {
     text: registeredText,
-    x: 180 + (page.getWidth() - 180 - 50 - registeredWidth) / 2,
-    y: 768,
-    size: 8.5,
+    x: leftShift + (page.getWidth() - leftShift - 50 - registeredWidth) / 2,
+    y: 787,
+    size: 9.1,
     xAlign: 'left',
   });
 
-  // Managed by (bold) - centered in available space
+  // Managed by (bold) - 30% bigger font (7.5 * 1.3 = 9.75) - more space
   const managedByText = `Managed by ${data.managedBy}`;
-  const managedByWidth = boldFont.widthOfTextAtSize(managedByText, 9);
+  const managedByWidth = boldFont.widthOfTextAtSize(managedByText, 9.75);
   PdfCommonUtils.writeText(page, boldFont, {
     text: managedByText,
-    x: 180 + (page.getWidth() - 180 - 50 - managedByWidth) / 2,
-    y: 755,
-    size: 9,
+    x: leftShift + (page.getWidth() - leftShift - 50 - managedByWidth) / 2,
+    y: 774,
+    size: 9.75,
     xAlign: 'left',
   });
 
-  // Address - centered in available space
+  // Address - 30% bigger font (6.5 * 1.3 = 8.45) - more space
   const addressText = `Address: ${data.address}`;
-  const addressWidth = font.widthOfTextAtSize(addressText, 7.5);
+  const addressWidth = font.widthOfTextAtSize(addressText, 8.45);
   PdfCommonUtils.writeText(page, font, {
     text: addressText,
-    x: 180 + (page.getWidth() - 180 - 50 - addressWidth) / 2,
-    y: 742,
-    size: 7.5,
+    x: leftShift + (page.getWidth() - leftShift - 50 - addressWidth) / 2,
+    y: 761,
+    size: 8.45,
     xAlign: 'left',
   });
 
-  // Phone and Fax - centered in available space
+  // Phone and Fax - 30% bigger font (6.5 * 1.3 = 8.45) - more space
   const phoneText = `Phone: ${data.phone}, Fax: ${data.fax}`;
-  const phoneWidth = font.widthOfTextAtSize(phoneText, 7.5);
+  const phoneWidth = font.widthOfTextAtSize(phoneText, 8.45);
   PdfCommonUtils.writeText(page, font, {
     text: phoneText,
-    x: 180 + (page.getWidth() - 180 - 50 - phoneWidth) / 2,
-    y: 730,
-    size: 7.5,
+    x: leftShift + (page.getWidth() - leftShift - 50 - phoneWidth) / 2,
+    y: 749,
+    size: 8.45,
     xAlign: 'left',
   });
 
-  // Draw horizontal line
+  // Draw horizontal line - 30% bigger (5.1 * 1.3 = 6.63)
   page.drawLine({
-    start: { x: 50, y: 720 },
-    end: { x: 545, y: 720 },
-    thickness: 4.5, // 3x the original 1.5
+    start: { x: 45, y: 728 },
+    end: { x: 550, y: 728 },
+    thickness: 6.63,
     color: rgb(142 / 255, 138 / 255, 40 / 255), // rgb(142, 138, 40)
   });
 
-  // Investment Statement title (bold, centered)
+  // Investment Statement title (bold, centered) - 10% bigger font (12 * 1.1 = 13.2)
   PdfCommonUtils.writeText(page, boldFont, {
     text: 'Investment Statement',
     x: 0,
-    y: 690,
-    size: 14,
+    y: 695,
+    size: 13.2,
     xAlign: 'center',
   });
 
-  // Statement date (centered)
+  // Statement date (centered) - 10% bigger font (8 * 1.1 = 8.8)
   PdfCommonUtils.writeText(page, font, {
     text: `(As On ${data.statementDate})`,
     x: 0,
-    y: 675,
-    size: 9,
+    y: 680,
+    size: 8.8,
     xAlign: 'center',
   });
 };
 
 const fillUpInvestorInfo = (page, font, boldFont, data) => {
-  const startY = 645;
+  const startY = 654; // Moved up by 1.5 lines (635 + 13*1.5 = 654.5 ≈ 654)
 
-  // Investor's Name (bold label and value)
+  // Investor's Name (bold label and value) - 10% bigger font (8 * 1.1 = 8.8)
   PdfCommonUtils.writeText(page, boldFont, {
     text: "Investor's Name : ",
-    x: 50,
+    x: 45,
     y: startY,
-    size: 9,
+    size: 8.8,
     xAlign: 'left',
   });
 
-  const labelWidth = boldFont.widthOfTextAtSize("Investor's Name : ", 9);
+  const labelWidth = boldFont.widthOfTextAtSize("Investor's Name : ", 8.8);
   PdfCommonUtils.writeText(page, boldFont, {
     text: data.investorName,
-    x: 50 + labelWidth,
+    x: 45 + labelWidth,
     y: startY,
-    size: 9,
+    size: 8.8,
     xAlign: 'left',
   });
 
-  // Registration No (bold label and value)
+  // Registration No (bold label and value) - 10% bigger font (8 * 1.1 = 8.8)
   PdfCommonUtils.writeText(page, boldFont, {
     text: 'Registration No : ',
-    x: 50,
-    y: startY - 15,
-    size: 9,
+    x: 45,
+    y: startY - 13,
+    size: 8.8,
     xAlign: 'left',
   });
 
-  const regLabelWidth = boldFont.widthOfTextAtSize('Registration No : ', 9);
+  const regLabelWidth = boldFont.widthOfTextAtSize('Registration No : ', 8.8);
   PdfCommonUtils.writeText(page, boldFont, {
     text: data.registrationNo,
-    x: 50 + regLabelWidth,
-    y: startY - 15,
-    size: 9,
+    x: 45 + regLabelWidth,
+    y: startY - 13,
+    size: 8.8,
     xAlign: 'left',
   });
 };
 
 const fillUpInvestmentTable = (page, font, boldFont, data) => {
-  const tableX = 50; // Aligned with other elements
-  const tableY = 600;
-  const labelColumnWidth = 395; // Increased to maintain same ending position
+  const tableX = 45;
+  const tableY = 620; // Positioned lower
+  const labelColumnWidth = 410;
   const valueColumnWidth = 100;
-  const rowHeight = 20;
+  const rowHeight = 24; // 20% bigger (20 * 1.2 = 24)
 
-  // Table data rows (removed bold from Total Deposit, Units Held, Total Capital Gain, Total Return)
+  // Table data rows
   const rows = [
     { label: 'Fund Deposit', value: data.fundDeposit },
     { label: 'Dividend Reinvested', value: data.dividendReinvested },
@@ -166,50 +167,90 @@ const fillUpInvestmentTable = (page, font, boldFont, data) => {
     { label: 'Cash Balance', value: data.cashBalance },
   ];
 
-  // Draw table
-  PdfCommonUtils.drawTable(page, font, {
-    rows: rows.map(row => ({
-      cells: [
-        { text: row.label, bold: row.bold },
-        { text: row.value, bold: row.bold },
-      ],
-    })),
-    x: tableX,
-    y: tableY,
-    rowHeight: rowHeight,
-    columnWidths: [labelColumnWidth, valueColumnWidth],
-    fontSize: 9,
-    borderColor: [0, 0, 0],
-    textColor: [0, 0, 0],
-    boldFont: boldFont,
-    padding: 5,
-    showBorders: true,
-    showVerticalBorders: true,
-    showHorizontalBorders: true,
+  // Draw table with right-aligned values
+  rows.forEach((row, index) => {
+    const currentY = tableY - (index * rowHeight);
+    
+    // Draw row border
+    page.drawRectangle({
+      x: tableX,
+      y: currentY - rowHeight,
+      width: labelColumnWidth + valueColumnWidth,
+      height: rowHeight,
+      borderColor: rgb(0, 0, 0),
+      borderWidth: 0.5,
+    });
+    
+    // Draw vertical separator
+    page.drawLine({
+      start: { x: tableX + labelColumnWidth, y: currentY },
+      end: { x: tableX + labelColumnWidth, y: currentY - rowHeight },
+      thickness: 0.5,
+      color: rgb(0, 0, 0),
+    });
+    
+    // Draw horizontal separator (except for last row)
+    if (index < rows.length - 1) {
+      page.drawLine({
+        start: { x: tableX, y: currentY - rowHeight },
+        end: { x: tableX + labelColumnWidth + valueColumnWidth, y: currentY - rowHeight },
+        thickness: 0.5,
+        color: rgb(0, 0, 0),
+      });
+    }
+    
+    // Draw label (left-aligned) - 20% bigger font (8 * 1.2 = 9.6), centered vertically
+    const cellFont = row.bold ? boldFont : font;
+    const fontSize = 9.6;
+    // Center text vertically in cell
+    const textY = currentY - rowHeight / 2 - fontSize / 2;
+    page.drawText(row.label, {
+      x: tableX + 4,
+      y: textY,
+      size: fontSize,
+      font: cellFont,
+      color: rgb(0, 0, 0),
+    });
+    
+    // Draw value (right-aligned) - 20% bigger font (8 * 1.2 = 9.6), centered vertically
+    const valueWidth = cellFont.widthOfTextAtSize(row.value, fontSize);
+    page.drawText(row.value, {
+      x: tableX + labelColumnWidth + valueColumnWidth - valueWidth - 4,
+      y: textY,
+      size: fontSize,
+      font: cellFont,
+      color: rgb(0, 0, 0),
+    });
   });
+  
+  // Return the end Y position of the table
+  return tableY - (rows.length * rowHeight);
 };
 
-const fillUpFooterNote = (page, font, boldFont) => {
-  // Add gap before footer note
-  const footerY = 195;
+const fillUpFooterNote = (page, font, boldFont, tableEndY) => {
+  // Gap reduced by 20%: 32 * 0.8 = 25.6
+  const footerY = tableEndY - 25.6;
+
+  // Font 20% bigger: 9.1 * 1.2 = 10.92
+  const fontSize = 10.92;
 
   // Red asterisk
   PdfCommonUtils.writeText(page, boldFont, {
     text: '*',
-    x: 50,
+    x: 45,
     y: footerY,
-    size: 8,
+    size: fontSize,
     color: rgb(1, 0, 0), // Red color
     xAlign: 'left',
   });
 
   // Rest of the text in black (bold)
-  const asteriskWidth = boldFont.widthOfTextAtSize('*', 8);
+  const asteriskWidth = boldFont.widthOfTextAtSize('*', fontSize);
   PdfCommonUtils.writeText(page, boldFont, {
     text: ' All amounts are in BDT, otherwise mentioned.',
-    x: 50 + asteriskWidth,
+    x: 45 + asteriskWidth,
     y: footerY,
-    size: 8,
+    size: fontSize,
     xAlign: 'left',
   });
 };
