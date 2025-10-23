@@ -1,6 +1,6 @@
 # Getting Started with PDF Form Generation
 
-Welcome! This guide will help you get up and running with the COUA Letter Generator in just a few minutes.
+Welcome! This guide will help you get up and running with the Fund Document Generator in just a few minutes.
 
 ## Quick Start (3 Steps)
 
@@ -14,20 +14,27 @@ This installs:
 - `pdf-lib` - For PDF creation and manipulation
 - `sharp` - For image processing
 
-### 2. Run the Example
+### 2. Run the Examples
 
+**Generate COUA Letter:**
 ```bash
 npm start
 ```
 
-This generates a sample COUA letter with demo data.
+**Generate Portfolio Statement:**
+```bash
+npm run portfolio
+```
 
 ### 3. Check the Output
 
-Look for `output-coua-letter.pdf` in the project folder. Open it to see your generated certificate!
+Look for the generated PDFs in the project folder:
+- `output-coua-letter.pdf` - Certificate of Unit Allocation
+- `output-portfolio-statement.pdf` - Investment Portfolio Statement
 
 ## What Just Happened?
 
+### COUA Letter Generation
 The application:
 1. ✓ Created a new PDF document (A4 size)
 2. ✓ Embedded the company logo
@@ -37,10 +44,21 @@ The application:
 6. ✓ Added legal disclaimers and contact information
 7. ✓ Saved the complete PDF
 
+### Portfolio Statement Generation
+The application:
+1. ✓ Created a new PDF document (A4 size)
+2. ✓ Embedded the company logo
+3. ✓ Added fund header information
+4. ✓ Placed investor details
+5. ✓ Generated a comprehensive 19-row investment table
+6. ✓ Added footer note about currency
+7. ✓ Saved the complete PDF
+
 ## Next Steps
 
 ### Customize the Data
 
+**For COUA Letter:**
 Edit `index.js` and modify the `sampleData` object:
 
 ```javascript
@@ -54,8 +72,23 @@ const sampleData = {
 
 Then run `npm start` again to generate a new PDF with your data.
 
+**For Portfolio Statement:**
+Edit `index-portfolio-statement.js` and modify the `sampleData` object:
+
+```javascript
+const sampleData = {
+  fundName: 'Shanta Amanah Shariah Fund',
+  statementDate: '19-10-2025',
+  investorName: 'Md. Samiul Alim',
+  // ... modify other fields
+};
+```
+
+Then run `npm run portfolio` again to generate a new PDF with your data.
+
 ### Use in Your Application
 
+**COUA Letter:**
 ```javascript
 const CouaLetterService = require('./coua-letter/coua-letter-service');
 const fs = require('fs');
@@ -64,7 +97,7 @@ async function generateLetter() {
   const service = new CouaLetterService();
   
   const data = {
-    // Your data here
+    // Your COUA data here
   };
   
   const pdfBuffer = await service.generateCouaLetterPdf(data);
@@ -72,6 +105,25 @@ async function generateLetter() {
 }
 
 generateLetter();
+```
+
+**Portfolio Statement:**
+```javascript
+const PortfolioStatementService = require('./portfolio-statement/portfolio-statement-service');
+const fs = require('fs');
+
+async function generateStatement() {
+  const service = new PortfolioStatementService();
+  
+  const data = {
+    // Your portfolio data here
+  };
+  
+  const pdfBuffer = await service.generatePortfolioStatementPdf(data);
+  fs.writeFileSync('my-statement.pdf', pdfBuffer);
+}
+
+generateStatement();
 ```
 
 ### Batch Generation
@@ -94,16 +146,22 @@ for (const investor of investors) {
 
 ```
 PDF Form Generation/
-├── coua-letter/              # COUA letter specific code
+├── coua-letter/                      # COUA letter module
 │   ├── coua-letter-service.js
 │   ├── coua-letter-pdf-utils.js
 │   ├── README.md
 │   └── API-REFERENCE.md
-├── pdf-common-utils.js       # Reusable PDF utilities
-├── index.js                  # Example/entry point
-├── package.json              # Dependencies
-├── saml_logo.png            # Company logo
-└── README.md                # Main documentation
+├── portfolio-statement/              # Portfolio statement module
+│   ├── portfolio-statement-service.js
+│   ├── portfolio-statement-pdf-utils.js
+│   ├── README.md
+│   └── API-REFERENCE.md
+├── pdf-common-utils.js               # Reusable PDF utilities
+├── index.js                          # COUA letter entry point
+├── index-portfolio-statement.js      # Portfolio statement entry point
+├── package.json                      # Dependencies
+├── saml_logo.png                     # Company logo
+└── README.md                         # Main documentation
 ```
 
 ## Common Tasks
@@ -160,7 +218,7 @@ Currently uses Helvetica (regular and bold). To use different fonts, modify the 
 
 ## Example Output
 
-The generated COUA letter includes:
+### COUA Letter includes:
 
 1. **Header**
    - Company logo
@@ -183,6 +241,30 @@ The generated COUA letter includes:
    - Confidentiality disclaimer
    - Contact information
 
+### Portfolio Statement includes:
+
+1. **Header**
+   - Company logo
+   - Fund name and registration
+   - Address and contact details
+   - Statement date
+
+2. **Investor Information**
+   - Investor's Name
+   - Registration Number
+
+3. **Investment Table** (19 rows)
+   - Deposits and withdrawals
+   - Units information
+   - Cost and NAV details
+   - Capital gains (realized/unrealized)
+   - Dividend information
+   - Total return
+   - Cash balance
+
+4. **Footer**
+   - Currency disclaimer
+
 ## Tips
 
 ✓ **Test First**: Always test with sample data before production use  
@@ -198,8 +280,16 @@ Now that you have the basics working, you can:
 1. Integrate with your database or API
 2. Add validation for input data
 3. Customize the layout and styling
-4. Add more certificate types
+4. Use both document types in your workflow
 5. Implement batch processing
 6. Add email delivery functionality
 
 Happy generating! 🎉
+
+## Available Documentation
+
+- **README.md** - Main project documentation
+- **coua-letter/README.md** - COUA letter features
+- **coua-letter/API-REFERENCE.md** - COUA letter API
+- **portfolio-statement/README.md** - Portfolio statement features
+- **portfolio-statement/API-REFERENCE.md** - Portfolio statement API

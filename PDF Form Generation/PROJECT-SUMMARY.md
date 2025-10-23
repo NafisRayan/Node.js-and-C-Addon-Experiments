@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a **standalone Node.js application** for generating Certificate of Unit Allocation (COUA) letters. It has been extracted from the main PDF form filling project and is now fully independent.
+This is a **standalone Node.js application** for generating fund documents including Certificate of Unit Allocation (COUA) letters and Investment Portfolio Statements. It has been extracted from the main PDF form filling project and is now fully independent.
 
 ## ✅ Project Status
 
@@ -18,19 +18,25 @@ This is a **standalone Node.js application** for generating Certificate of Unit 
 
 ```
 PDF Form Generation/
-├── coua-letter/                      # COUA letter module
-│   ├── coua-letter-service.js        # Main service class
-│   ├── coua-letter-pdf-utils.js      # Section-specific utilities
-│   ├── README.md                     # Feature documentation
-│   └── API-REFERENCE.md              # Complete API docs
-├── pdf-common-utils.js               # Reusable PDF utilities
-├── index.js                          # Entry point with sample data
-├── package.json                      # Dependencies and scripts
-├── saml_logo.png                     # Company logo
-├── .gitignore                        # Git ignore rules
-├── README.md                         # Main documentation
-├── GETTING-STARTED.md                # Quick start guide
-└── PROJECT-SUMMARY.md                # This file
+├── coua-letter/                           # COUA letter module
+│   ├── coua-letter-service.js             # COUA service class
+│   ├── coua-letter-pdf-utils.js           # COUA utilities
+│   ├── README.md                          # COUA documentation
+│   └── API-REFERENCE.md                   # COUA API reference
+├── portfolio-statement/                   # Portfolio statement module
+│   ├── portfolio-statement-service.js     # Portfolio service class
+│   ├── portfolio-statement-pdf-utils.js   # Portfolio utilities
+│   ├── README.md                          # Portfolio documentation
+│   └── API-REFERENCE.md                   # Portfolio API reference
+├── pdf-common-utils.js                    # Reusable PDF utilities
+├── index.js                               # COUA entry point
+├── index-portfolio-statement.js           # Portfolio entry point
+├── package.json                           # Dependencies and scripts
+├── saml_logo.png                          # Company logo
+├── .gitignore                             # Git ignore rules
+├── README.md                              # Main documentation
+├── GETTING-STARTED.md                     # Quick start guide
+└── PROJECT-SUMMARY.md                     # This file
 ```
 
 ## 🚀 Quick Start
@@ -41,8 +47,11 @@ npm install
 
 # Generate sample COUA letter
 npm start
-
 # Output: output-coua-letter.pdf
+
+# Generate sample Portfolio Statement
+npm run portfolio
+# Output: output-portfolio-statement.pdf
 ```
 
 ## 📦 Dependencies
@@ -64,8 +73,11 @@ npm start
 - ✅ Image embedding with automatic format conversion
 - ✅ Bold and regular font mixing
 - ✅ Professional layout with company branding
+- ✅ Multiple document types (COUA & Portfolio Statement)
 
-### Document Sections
+### Document Types
+
+#### COUA Letter Sections
 1. **Header Section**
    - Company logo (top-left)
    - Date, IDs, registration numbers (top-right)
@@ -79,6 +91,25 @@ npm start
 3. **Footer Section**
    - Legal disclaimer (justified)
    - Contact information with mixed formatting
+
+#### Portfolio Statement Sections
+1. **Header Section**
+   - Company logo
+   - Fund name and registration
+   - Address and contact details
+   - Statement date
+
+2. **Investor Information**
+   - Investor's Name
+   - Registration Number
+
+3. **Investment Table**
+   - Comprehensive 19-row table
+   - Bold highlighting for key totals
+   - Deposits, withdrawals, units, NAV, gains, returns
+
+4. **Footer Section**
+   - Currency disclaimer
 
 ## 📊 Test Results
 
@@ -105,9 +136,11 @@ npm start
 ### Available Documentation
 1. **README.md** - Main project documentation
 2. **GETTING-STARTED.md** - Quick start guide for new users
-3. **coua-letter/README.md** - Feature-specific documentation
-4. **coua-letter/API-REFERENCE.md** - Complete API reference
-5. **PROJECT-SUMMARY.md** - This file
+3. **coua-letter/README.md** - COUA letter features
+4. **coua-letter/API-REFERENCE.md** - COUA letter API reference
+5. **portfolio-statement/README.md** - Portfolio statement features
+6. **portfolio-statement/API-REFERENCE.md** - Portfolio statement API reference
+7. **PROJECT-SUMMARY.md** - This file
 
 ### Documentation Coverage
 - ✅ Installation instructions
@@ -118,7 +151,9 @@ npm start
 - ✅ Customization guide
 - ✅ Error handling examples
 
-## 🔧 Usage Example
+## 🔧 Usage Examples
+
+### COUA Letter
 
 ```javascript
 const CouaLetterService = require('./coua-letter/coua-letter-service');
@@ -137,11 +172,39 @@ async function generateLetter() {
   };
   
   const pdfBuffer = await service.generateCouaLetterPdf(data);
-  fs.writeFileSync('output.pdf', pdfBuffer);
-  console.log('PDF generated successfully!');
+  fs.writeFileSync('coua-letter.pdf', pdfBuffer);
+  console.log('COUA letter generated successfully!');
 }
 
 generateLetter();
+```
+
+### Portfolio Statement
+
+```javascript
+const PortfolioStatementService = require('./portfolio-statement/portfolio-statement-service');
+const fs = require('fs');
+
+async function generateStatement() {
+  const service = new PortfolioStatementService();
+  
+  const data = {
+    fundName: 'Shanta Amanah Shariah Fund',
+    statementDate: '19-10-2025',
+    investorName: 'Md. Samiul Alim',
+    registrationNo: '022002128-1',
+    fundDeposit: '200,000',
+    totalDeposit: '206,860',
+    unitsHeld: '557',
+    // ... more fields
+  };
+  
+  const pdfBuffer = await service.generatePortfolioStatementPdf(data);
+  fs.writeFileSync('portfolio-statement.pdf', pdfBuffer);
+  console.log('Portfolio statement generated successfully!');
+}
+
+generateStatement();
 ```
 
 ## 🎨 Customization Options
@@ -160,8 +223,10 @@ generateLetter();
 
 ## 🔍 Key Components
 
-### CouaLetterService
-Main service class that orchestrates PDF generation.
+### Service Classes
+
+#### CouaLetterService
+Main service class for COUA letter generation.
 
 **Method**: `generateCouaLetterPdf(data)`
 - Creates PDF document
@@ -169,7 +234,18 @@ Main service class that orchestrates PDF generation.
 - Calls utility functions for each section
 - Returns PDF buffer
 
-### PdfCommonUtils
+#### PortfolioStatementService
+Main service class for portfolio statement generation.
+
+**Method**: `generatePortfolioStatementPdf(data)`
+- Creates PDF document
+- Embeds fonts
+- Calls utility functions for each section
+- Returns PDF buffer
+
+### Utility Modules
+
+#### PdfCommonUtils
 Reusable utilities for PDF manipulation.
 
 **Functions**:
@@ -179,7 +255,7 @@ Reusable utilities for PDF manipulation.
 - `writeLabelAndValuePair()` - Label-value pairs
 - `drawTable()` - Table generation
 
-### CouaLetterPdfUtils
+#### CouaLetterPdfUtils
 COUA-specific section filling functions.
 
 **Functions**:
@@ -187,31 +263,58 @@ COUA-specific section filling functions.
 - `fillUpMiddleTableInfo()` - Table section
 - `fillUpBottomNoteInfo()` - Footer section
 
+#### PortfolioStatementPdfUtils
+Portfolio statement-specific section filling functions.
+
+**Functions**:
+- `fillUpHeaderInfo()` - Header section
+- `fillUpInvestorInfo()` - Investor information
+- `fillUpInvestmentTable()` - Investment table (19 rows)
+- `fillUpFooterNote()` - Footer note
+
 ## 📋 Data Requirements
 
-### Required Fields (16)
+### COUA Letter
+
+**Required Fields (16)**:
 - date, investorId, regNumber, unitAllocationNo
 - fundName, fundRegNo, fundSponsor, fundAssetManager
 - fundTrustee, fundCustodian
 - investorName, investorNid, investorFatherName
 - numberOfUnits, averageBuyPrice, totalInvestmentValue
 
-### Optional Fields (3)
+**Optional Fields (3)**:
 - registeredUnder (has default)
 - contactNumber (has default)
 - contactEmail (has default)
 
+### Portfolio Statement
+
+**Required Fields (24)**:
+- fundName, statementDate, investorName, registrationNo
+- fundDeposit, dividendReinvested, totalDeposit, totalWithdrawal
+- unitsPurchased, cipUnits, unitsSurrender, unitsHeld
+- averageCostPerUnit, investmentAtCost, currentNav, currentNavDate
+- marketValue, capitalGainRealized, capitalGainUnrealized, totalCapitalGain
+- dividendIncome, dividendReceivable, totalReturn, cashBalance
+
+**Optional Fields (5)**:
+- registeredUnder, managedBy, address, phone, fax (all have defaults)
+
 ## 🎯 Use Cases
 
-### Primary Use Case
-Generate COUA letters for fund investors after unit allocation.
+### Primary Use Cases
+- Generate COUA letters for fund investors after unit allocation
+- Generate portfolio statements for periodic investor reporting
 
 ### Additional Use Cases
 - Batch generation for multiple investors
 - Integration with investor management systems
-- Automated certificate generation workflows
+- Automated document generation workflows
 - Email delivery systems
 - Archive and record keeping
+- Quarterly/annual reporting
+- Investor portal document generation
 
 ## 🔐 Security Considerations
 

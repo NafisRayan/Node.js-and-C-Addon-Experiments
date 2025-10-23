@@ -1,6 +1,6 @@
-# PDF Form Generation - COUA Letter Generator
+# PDF Form Generation - Fund Document Generator
 
-A standalone Node.js application for generating **Certificate of Unit Allocation (COUA)** letters for fund investors. This system creates professional, system-generated certificates with precise text positioning, table generation, and image embedding capabilities.
+A standalone Node.js application for generating professional fund documents including **Certificate of Unit Allocation (COUA)** letters and **Investment Portfolio Statements**. This system creates professional, system-generated documents with precise text positioning, table generation, and image embedding capabilities.
 
 ## Features
 
@@ -10,7 +10,7 @@ A standalone Node.js application for generating **Certificate of Unit Allocation
 ✓ **Table Generation** - Flexible tables with customizable styling  
 ✓ **Image Embedding** - Logo placement with automatic format conversion  
 ✓ **Font Mixing** - Bold and regular fonts for emphasis  
-✓ **Legal Disclaimers** - Built-in legal text and contact information  
+✓ **Multiple Document Types** - COUA letters and Portfolio Statements  
 ✓ **System-Generated** - No signature required
 
 ## Prerequisites
@@ -34,16 +34,27 @@ A standalone Node.js application for generating **Certificate of Unit Allocation
 
 ## Quick Start
 
-1. Run the example:
+### Generate COUA Letter
+
+1. Run the COUA letter example:
    ```bash
    npm start
    ```
 
 2. The generated PDF will be saved as `output-coua-letter.pdf` in the project root.
 
+### Generate Portfolio Statement
+
+1. Run the portfolio statement example:
+   ```bash
+   npm run portfolio
+   ```
+
+2. The generated PDF will be saved as `output-portfolio-statement.pdf` in the project root.
+
 ## Usage
 
-### Basic Example
+### COUA Letter Example
 
 ```javascript
 const CouaLetterService = require('./coua-letter/coua-letter-service');
@@ -76,7 +87,46 @@ const data = {
 };
 
 const pdfBuffer = await service.generateCouaLetterPdf(data);
-fs.writeFileSync('output.pdf', pdfBuffer);
+fs.writeFileSync('coua-letter.pdf', pdfBuffer);
+```
+
+### Portfolio Statement Example
+
+```javascript
+const PortfolioStatementService = require('./portfolio-statement/portfolio-statement-service');
+const fs = require('fs');
+
+const service = new PortfolioStatementService();
+
+const data = {
+  fundName: 'Shanta Amanah Shariah Fund',
+  statementDate: '19-10-2025',
+  investorName: 'Md. Samiul Alim',
+  registrationNo: '022002128-1',
+  fundDeposit: '200,000',
+  dividendReinvested: '6,860',
+  totalDeposit: '206,860',
+  totalWithdrawal: '163,829',
+  unitsPurchased: '16,963',
+  cipUnits: '594',
+  unitsSurrender: '17000',
+  unitsHeld: '557',
+  averageCostPerUnit: '11.7819',
+  investmentAtCost: '6,563',
+  currentNav: '10.07',
+  currentNavDate: 'Oct 16, 2025',
+  marketValue: '5,609',
+  capitalGainRealized: '(36,463)',
+  capitalGainUnrealized: '(954)',
+  totalCapitalGain: '(37,416)',
+  dividendIncome: '7,633',
+  dividendReceivable: '0.00',
+  totalReturn: '(29,783)',
+  cashBalance: '6.23',
+};
+
+const pdfBuffer = await service.generatePortfolioStatementPdf(data);
+fs.writeFileSync('portfolio-statement.pdf', pdfBuffer);
 ```
 
 ## Project Structure
@@ -84,18 +134,26 @@ fs.writeFileSync('output.pdf', pdfBuffer);
 ```
 PDF Form Generation/
 ├── coua-letter/
-│   ├── coua-letter-service.js       # Main service class
-│   ├── coua-letter-pdf-utils.js     # Section-specific utilities
-│   ├── README.md                    # Detailed feature documentation
-│   └── API-REFERENCE.md             # Complete API documentation
+│   ├── coua-letter-service.js       # COUA letter service class
+│   ├── coua-letter-pdf-utils.js     # COUA letter utilities
+│   ├── README.md                    # COUA letter documentation
+│   └── API-REFERENCE.md             # COUA letter API reference
+├── portfolio-statement/
+│   ├── portfolio-statement-service.js    # Portfolio statement service
+│   ├── portfolio-statement-pdf-utils.js  # Portfolio statement utilities
+│   ├── README.md                         # Portfolio statement documentation
+│   └── API-REFERENCE.md                  # Portfolio statement API reference
 ├── pdf-common-utils.js              # Common PDF utilities
-├── index.js                         # Entry point with sample data
+├── index.js                         # COUA letter entry point
+├── index-portfolio-statement.js     # Portfolio statement entry point
 ├── package.json                     # Dependencies and scripts
 ├── saml_logo.png                    # Company logo
 └── README.md                        # This file
 ```
 
-## Document Structure
+## Document Types
+
+### 1. COUA Letter (Certificate of Unit Allocation)
 
 The COUA letter consists of three main sections:
 
@@ -120,6 +178,49 @@ The COUA letter consists of three main sections:
 ### 3. Bottom Section (Legal Notes)
 - Legal disclaimer about the document
 - Contact information with phone and email
+
+### 2. Portfolio Statement (Investment Statement)
+
+The Portfolio Statement consists of four main sections:
+
+#### 1. Header Section
+- Company logo (left side)
+- Fund name (centered, large title)
+- Registration details (centered)
+- Managed by information
+- Address, phone, and fax
+- Horizontal separator line
+- "Investment Statement" title
+- Statement date
+
+#### 2. Investor Information Section
+- Investor's Name
+- Registration Number
+
+#### 3. Investment Table Section
+A comprehensive 19-row table showing:
+- Fund Deposit
+- Dividend Reinvested
+- **Total Deposit** (bold)
+- Total Withdrawal
+- Units Purchased (Nos)
+- CIP Units (Nos)
+- Units Surrender (Nos)
+- **Units Held (Nos)** (bold)
+- Average Cost Price/Unit
+- Investment at Cost
+- Current NAV (with date)
+- **Market Value of Investment** (bold)
+- Capital Gain (Realized) (a)
+- Capital Gain (Unrealized) (b)
+- **Total Capital Gain (a+b)** (bold)
+- Dividend Income (c)
+- Dividend Receivable (d)
+- **Total Return (a+b+c+d)** (bold)
+- Cash Balance
+
+#### 4. Footer Section
+- Note: "All amounts are in BDT, otherwise mentioned."
 
 ## Data Fields
 
@@ -162,22 +263,25 @@ The COUA letter consists of three main sections:
 
 ## API Reference
 
-### CouaLetterService
+### Service Classes
 
-#### `generateCouaLetterPdf(data)`
+#### CouaLetterService
 
-Generates a COUA letter PDF document.
-
-**Parameters:**
-- `data` (Object) - COUA letter data object (see Data Fields above)
-
-**Returns:** `Promise<Buffer>` - PDF document as a Buffer
-
-**Example:**
 ```javascript
 const service = new CouaLetterService();
 const pdfBuffer = await service.generateCouaLetterPdf(data);
 ```
+
+See `coua-letter/API-REFERENCE.md` for complete COUA letter API documentation.
+
+#### PortfolioStatementService
+
+```javascript
+const service = new PortfolioStatementService();
+const pdfBuffer = await service.generatePortfolioStatementPdf(data);
+```
+
+See `portfolio-statement/API-REFERENCE.md` for complete portfolio statement API documentation.
 
 ### PdfCommonUtils
 
@@ -189,7 +293,7 @@ Utility functions for PDF manipulation:
 - `writeLabelAndValuePair(page, font, boldFont, opts)` - Label-value pairs
 - `drawTable(page, font, opts)` - Table generation
 
-See `coua-letter/API-REFERENCE.md` for complete API documentation.
+These utilities are shared across all document types.
 
 ## Dependencies
 
@@ -207,6 +311,7 @@ See `coua-letter/API-REFERENCE.md` for complete API documentation.
 
 - `npm start` - Generate COUA letter with sample data
 - `npm run generate` - Alias for npm start
+- `npm run portfolio` - Generate portfolio statement with sample data
 
 ## Error Handling
 
@@ -301,10 +406,23 @@ PdfCommonUtils.drawTable(page, font, {
 
 ISC
 
+## Documentation
+
+### Quick References
+- **GETTING-STARTED.md** - Quick start guide for new users
+- **DOCUMENT-TYPES.md** - Comparison and guide for choosing document types
+- **PROJECT-SUMMARY.md** - Project overview and status
+
+### Module Documentation
+- **coua-letter/README.md** - COUA letter features and usage
+- **coua-letter/API-REFERENCE.md** - COUA letter API reference
+- **portfolio-statement/README.md** - Portfolio statement features and usage
+- **portfolio-statement/API-REFERENCE.md** - Portfolio statement API reference
+
 ## Support
 
 For issues or questions, please contact the development team.
 
 ---
 
-**Note**: This is a system-generated certificate and does not require authorized signatures. The document includes legal disclaimers about confidentiality and unauthorized use.
+**Note**: All documents are system-generated and do not require authorized signatures.

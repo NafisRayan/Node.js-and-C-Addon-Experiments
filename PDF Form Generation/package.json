@@ -1,11 +1,12 @@
 {
   "name": "pdf-form-generation",
-  "version": "1.0.0",
-  "description": "PDF Form Generation - COUA Letter Generator",
+  "version": "1.1.0",
+  "description": "PDF Form Generation - Fund Document Generator (COUA Letters & Portfolio Statements)",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "generate": "node index.js"
+    "generate": "node index.js",
+    "portfolio": "node index-portfolio-statement.js"
   },
   "keywords": [
     "pdf",
@@ -13,7 +14,12 @@
     "generation",
     "coua",
     "certificate",
-    "unit-allocation"
+    "unit-allocation",
+    "portfolio",
+    "statement",
+    "investment",
+    "fund",
+    "document"
   ],
   "author": "",
   "license": "ISC",
