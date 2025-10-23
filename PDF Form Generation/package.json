@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node index.js",
     "generate": "node index.js",
-    "portfolio": "node index-portfolio-statement.js"
+    "portfolio": "node index-portfolio-statement.js",
+    "certificate": "node index-investment-certificate.js"
   },
   "keywords": [
     "pdf",
