@@ -73,8 +73,8 @@ const fillUpHeaderInfo = async (pdfDoc, page, font, boldFont, data) => {
   page.drawLine({
     start: { x: 50, y: 720 },
     end: { x: 545, y: 720 },
-    thickness: 1.5,
-    color: rgb(0.4, 0.6, 0.2), // Greenish color
+    thickness: 4.5, // 3x the original 1.5
+    color: rgb(142 / 255, 138 / 255, 40 / 255), // rgb(142, 138, 40)
   });
 
   // Investment Statement title (bold, centered)
@@ -107,7 +107,7 @@ const fillUpInvestorInfo = (page, font, boldFont, data) => {
     size: 9,
     xAlign: 'left',
   });
-  
+
   const labelWidth = boldFont.widthOfTextAtSize("Investor's Name : ", 9);
   PdfCommonUtils.writeText(page, boldFont, {
     text: data.investorName,
@@ -125,7 +125,7 @@ const fillUpInvestorInfo = (page, font, boldFont, data) => {
     size: 9,
     xAlign: 'left',
   });
-  
+
   const regLabelWidth = boldFont.widthOfTextAtSize('Registration No : ', 9);
   PdfCommonUtils.writeText(page, boldFont, {
     text: data.registrationNo,
@@ -137,9 +137,9 @@ const fillUpInvestorInfo = (page, font, boldFont, data) => {
 };
 
 const fillUpInvestmentTable = (page, font, boldFont, data) => {
-  const tableX = 65;
+  const tableX = 50; // Aligned with other elements
   const tableY = 600;
-  const labelColumnWidth = 380;
+  const labelColumnWidth = 395; // Increased to maintain same ending position
   const valueColumnWidth = 100;
   const rowHeight = 20;
 
@@ -192,11 +192,22 @@ const fillUpInvestmentTable = (page, font, boldFont, data) => {
 const fillUpFooterNote = (page, font, boldFont) => {
   // Add gap before footer note
   const footerY = 195;
-  
-  // Footer note (bold)
+
+  // Red asterisk
   PdfCommonUtils.writeText(page, boldFont, {
-    text: '* All amounts are in BDT, otherwise mentioned.',
-    x: 65,
+    text: '*',
+    x: 50,
+    y: footerY,
+    size: 8,
+    color: rgb(1, 0, 0), // Red color
+    xAlign: 'left',
+  });
+
+  // Rest of the text in black (bold)
+  const asteriskWidth = boldFont.widthOfTextAtSize('*', 8);
+  PdfCommonUtils.writeText(page, boldFont, {
+    text: ' All amounts are in BDT, otherwise mentioned.',
+    x: 50 + asteriskWidth,
     y: footerY,
     size: 8,
     xAlign: 'left',
