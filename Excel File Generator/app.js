@@ -1,11 +1,15 @@
 // safe-quotePrefix-export.js
 const ExcelJS = require('exceljs');
+
+
 // JSZip: A JavaScript library for creating, reading, and editing .zip files in memory.
 // In this code, JSZip is used to treat the Excel file (which is a ZIP archive containing XML files)
 // as a zip container. It allows loading the Excel buffer, extracting specific XML files like 'xl/styles.xml',
 // modifying them, and then regenerating the zip archive back into a buffer for saving.
 // This is essential because Excel files (.xlsx) are essentially ZIP archives with structured XML content.
 const JSZip = require('jszip');
+
+
 // fast-xml-parser: A fast and efficient XML parser and builder for JavaScript.
 // XMLParser converts XML strings into JavaScript objects for easy manipulation.
 // XMLBuilder converts JavaScript objects back into XML strings.
@@ -14,6 +18,8 @@ const JSZip = require('jszip');
 // and then rebuild the XML string to write back into the zip archive.
 // This approach avoids using regex on XML (which can be error-prone) and ensures proper XML structure.
 const { XMLParser, XMLBuilder } = require('fast-xml-parser');
+
+
 const fs = require('fs');
 
 async function exportBankDataWithQuotePrefix() {
