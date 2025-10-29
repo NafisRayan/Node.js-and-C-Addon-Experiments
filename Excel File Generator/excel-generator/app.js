@@ -5,6 +5,7 @@ const { XMLParser, XMLBuilder } = require('fast-xml-parser');
 const fs = require('fs');
 
 async function exportBankDataWithQuotePrefix() {
+  // ExcelJS: Create workbook, worksheet, columns, and add data
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet('Bank Data');
 
@@ -15,14 +16,14 @@ async function exportBankDataWithQuotePrefix() {
     { header: 'Amount',          key: 'amount',  width: 16 },
   ];
 
+  // Make header row bold
+  ws.getRow(1).font = { bold: true };
+
   const rows = [
     { name: 'Alice', account: '001234567890', routing: '021000021', amount: '1234.00' },
     { name: 'Bob',   account: '000045678901', routing: '026009593', amount: '9999999999999999.99' },
     { name: 'Carol', account: '123456789',    routing: '111000025', amount: '45.67' },
   ];
-
-  // Header
-  ws.addRow(['Name', 'Account Number', 'Routing Number', 'Amount']).font = { bold: true };
 
   // Add data rows as plain strings and set TEXT number format on B,C,D
   rows.forEach(r => {
@@ -88,11 +89,11 @@ async function exportBankDataWithQuotePrefix() {
   const patchedStylesXml = builder.build(styles);
   zip.file(stylesPath, patchedStylesXml);
 
-  // Write final XLSX
+  // fs: Write the final Excel file
   const finalBuffer = await zip.generateAsync({ type: 'nodebuffer' });
-  fs.writeFileSync('bank-data-text-with-quotePrefix.xlsx', finalBuffer);
+  fs.writeFileSync('Output.xlsx', finalBuffer);
 
-  console.log('✅ bank-data-text-with-quotePrefix.xlsx written');
+  console.log('✅ Output.xlsx written');
 }
 
 exportBankDataWithQuotePrefix().catch(console.error);
