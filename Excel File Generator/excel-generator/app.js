@@ -1,6 +1,18 @@
 // safe-quotePrefix-export.js
 const ExcelJS = require('exceljs');
+// JSZip: A JavaScript library for creating, reading, and editing .zip files in memory.
+// In this code, JSZip is used to treat the Excel file (which is a ZIP archive containing XML files)
+// as a zip container. It allows loading the Excel buffer, extracting specific XML files like 'xl/styles.xml',
+// modifying them, and then regenerating the zip archive back into a buffer for saving.
+// This is essential because Excel files (.xlsx) are essentially ZIP archives with structured XML content.
 const JSZip = require('jszip');
+// fast-xml-parser: A fast and efficient XML parser and builder for JavaScript.
+// XMLParser converts XML strings into JavaScript objects for easy manipulation.
+// XMLBuilder converts JavaScript objects back into XML strings.
+// In this code, they are used to parse the 'xl/styles.xml' file from the Excel workbook into a manipulable object,
+// modify the XML structure to add 'quotePrefix' attributes to text-formatted cells,
+// and then rebuild the XML string to write back into the zip archive.
+// This approach avoids using regex on XML (which can be error-prone) and ensures proper XML structure.
 const { XMLParser, XMLBuilder } = require('fast-xml-parser');
 const fs = require('fs');
 
@@ -38,13 +50,23 @@ async function exportBankDataWithQuotePrefix() {
   const buffer = await wb.xlsx.writeBuffer();
 
   // Patch ONLY xl/styles.xml using a real XML parser (no regex on XML structure)
+  // Load the Excel buffer as a JSZip object. This treats the Excel file as a zip archive,
+  // allowing access to individual XML files within it for modification.
   const zip = await JSZip.loadAsync(buffer);
   const stylesPath = 'xl/styles.xml';
+  // Extract the styles.xml file content as a string from the zip archive.
   const stylesXml = await zip.file(stylesPath).async('string');
 
+  // Create XMLParser and XMLBuilder instances with options:
+  // - ignoreAttributes: false means attributes are included in the parsed object
+  // - attributeNamePrefix: '' means attribute names are not prefixed (e.g., 'id' instead of '@id')
+  // This configuration makes the parsed XML easier to manipulate as a JavaScript object.
   const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '' });
   const builder = new XMLBuilder({ ignoreAttributes: false, attributeNamePrefix: '' });
 
+  // Parse the styles.xml string into a JavaScript object. This converts the XML structure
+  // into a nested object where XML elements become object properties and attributes become
+  // object keys, allowing for programmatic modification of the Excel styles.
   const styles = parser.parse(stylesXml);
 
   // Build a map of numFmtId -> formatCode for custom formats (if any)
@@ -86,10 +108,16 @@ async function exportBankDataWithQuotePrefix() {
   }
 
   // Rebuild styles.xml and write back to zip; do NOT touch any worksheet XML
+  // Convert the modified styles JavaScript object back into an XML string.
+  // This rebuilds the XML with all the changes made to the object, ensuring proper XML formatting.
   const patchedStylesXml = builder.build(styles);
+  // Replace the original styles.xml file in the zip archive with the patched XML string.
+  // This updates the Excel file's style definitions without modifying other files in the archive.
   zip.file(stylesPath, patchedStylesXml);
 
   // fs: Write the final Excel file
+  // Generate a new Node.js Buffer from the modified JSZip object.
+  // This creates the complete Excel file as a binary buffer that can be written to disk.
   const finalBuffer = await zip.generateAsync({ type: 'nodebuffer' });
   fs.writeFileSync('Output.xlsx', finalBuffer);
 
