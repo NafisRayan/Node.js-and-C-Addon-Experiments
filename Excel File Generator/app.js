@@ -52,7 +52,7 @@ Mobile Number"`;
   dataRows.forEach(r => {
     const row = ws.addRow(r);
     // Set TEXT number format on columns that should have quote prefix, except Amount
-    const columnsToFormat = ['A','C','D','F','H','I'];
+    const columnsToFormat = ['A','C','D','F','H','I','K'];
     columnsToFormat.forEach(col => {
       const cell = ws.getCell(`${col}${row.number}`);
       cell.numFmt = '@'; // Text format; keeps value as text
