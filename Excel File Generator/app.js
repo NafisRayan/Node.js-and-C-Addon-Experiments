@@ -27,26 +27,33 @@ async function exportBankDataWithQuotePrefix() {
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet('Bank Data');
 
-  ws.columns = [
-    { header: 'Name',            key: 'name',    width: 18 },
-    { header: 'Account Number',  key: 'account', width: 22 },
-    { header: 'Routing Number',  key: 'routing', width: 18 },
-    { header: 'Amount',          key: 'amount',  width: 16 },
+  const headerLine = `Mandate Reference ID,Debit Account Name,Debit Account Number,Routing Number,Amount (BDT),Credit Narration,Cycle Type,"SI Start Date
+(DD/MM/YYYY)","SI End Date
+(DD/MM/YYYY)",Receiver's Email,"Receiver's
+Mobile Number"`;
+  const headers = headerLine.split(',').map(h => h.replace(/^"|"$/g, ''));
+
+  const dataLines = [
+    '123456789-1,John Doe,1234567890123,123456789,5000.00,123456789-1,Instant,,,john.doe@example.com,',
+    '987654321-1,Jane Smith,9876543210987,987654321,7500.00,987654321-1,Instant,,,jane.smith@example.com,',
+    '456789123-1,Bob Johnson,4567891234567,456789123,2000.00,456789123-1,Instant,,,bob.johnson@example.com,',
+    '789123456-1,Alice Brown,7891234567890,789123456,12000.00,789123456-1,Monthly,01/01/2025,31/12/2025,alice.brown@example.com,',
+    '321654987-1,Charlie Wilson,3216549876543,321654987,30000.00,321654987-1,Monthly,15/06/2025,15/06/2027,charlie.wilson@example.com,',
+    '654987321-1,Diana Lee,6549873210987,654987321,800.00,654987321-1,Monthly,01/03/2025,01/03/2030,diana.lee@example.com,'
   ];
+  const dataRows = dataLines.map(line => line.split(','));
+
+  ws.columns = headers.map(h => ({ header: h, width: 20 }));
 
   // Make header row bold
   ws.getRow(1).font = { bold: true };
 
-  const rows = [
-    { name: 'Alice', account: '001234567890', routing: '021000021', amount: '1234.00' },
-    { name: 'Bob',   account: '000045678901', routing: '026009593', amount: '9999999999999999.99' },
-    { name: 'Carol', account: '123456789',    routing: '111000025', amount: '45.67' },
-  ];
-
-  // Add data rows as plain strings and set TEXT number format on B,C,D
-  rows.forEach(r => {
-    const row = ws.addRow([r.name, r.account, r.routing, r.amount]);
-    ['B', 'C', 'D'].forEach(col => {
+  // Add data rows
+  dataRows.forEach(r => {
+    const row = ws.addRow(r);
+    // Set TEXT number format on columns that should have quote prefix, except Amount
+    const columnsToFormat = ['A','C','D','F','H','I'];
+    columnsToFormat.forEach(col => {
       const cell = ws.getCell(`${col}${row.number}`);
       cell.numFmt = '@'; // Text format; keeps value as text
     });
